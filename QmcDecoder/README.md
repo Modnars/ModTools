@@ -12,7 +12,7 @@ QMC加密文件解析工具，提供“命令行”、“配置文件模式”�
 
 ## 使用方法
 
-- 1. 命令行方式
+### 1. 命令行方式
 
 ```bash
 # 解析config.txt中指定的源文件，并将结果文件存储至config.txt中指定的目标目录
@@ -23,7 +23,7 @@ $ ./QmcDecoder config.txt
 $ ./QmcDecoder source_file destination_dir
 ```
 
-- 2. 配置文件方式
+### 2. 配置文件方式
 
 具体执行方式参阅方式1，其中config.txt格式如下:
 
@@ -40,7 +40,7 @@ $ ./QmcDecoder source_file destination_dir
 # 程序只会将结果文件存储至一个目标目录，故上面的Temp目录不会被写入结果文件。
 ```
 
-- 3. GUI可执行程序
+### 3. GUI可执行程序
 
 ```bash
 # 直接执行main.py即可
