@@ -1,0 +1,2 @@
+# Packages used by `parse_xlsx.py`.
+pandas
