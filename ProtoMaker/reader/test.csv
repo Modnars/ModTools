@@ -1,0 +1,5 @@
+id, name, age, address
+uint64, string, uint32, string
+, , , ,
+1001, Mike, 18, Street 28
+1002, Amy, 20, MIT
