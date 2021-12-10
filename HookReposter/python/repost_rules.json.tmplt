@@ -1,0 +1,28 @@
+{
+    "github": {
+        "parse": {
+            "repo_name": "repository.name",
+            "repo_url": "repository.url",
+            "pusher_name": "pusher.name",
+            "pusher_email": "pusher.email",
+            "commit_id": "commits.id",
+            "commit_msg": "commits.message",
+            "commit_time": "commits.timestamp",
+            "commit_author": "commits.author.username",
+            "commit_modified": "commits.modified"
+        },
+        "hosts": [
+            {
+                "name": "wework",
+                "url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=webhook_key",
+                "method": "POST",
+                "data": {
+                    "msgtype": "markdown",
+                    "markdown": {
+                        "content": "*INFO*\n**repository: **${repo_name}\n**address: **${repo_url}\n**pusher: **${pusher_name}\n**email: **${pusher_email}$[\n~~~\n  **commit_id: **${commit_id}\n  **message: **${commit_msg}\n  **time: **${commit_time}\n  **author: **${commit_author}\n  **modified: **${commit_modified}]"
+                    }
+                }
+            }
+        ]
+    }
+}
