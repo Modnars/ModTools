@@ -54,6 +54,10 @@ python3 reposter.py # or nohup python3 reposter.py &
 
 ![Recv response after call webhook.](./.res/github.webhook.response.png)
 
+&#160; &#160; &#160; &#160; 企业微信机器人收到请求后，会发送相应信息给用户。
+
+![Wework bot send message to user when recv webhook call.](./.res/wework.bot.png)
+
 ## 后续优化计划
 
 - 优化发送方式: 目前是阻塞同步调用webhook，当注册的转发host较多时，会较为耗时，进而导致调用方超时。考虑使用异步方式来请求转发webhook，以免阻塞调用方。
