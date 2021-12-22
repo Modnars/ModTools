@@ -2,8 +2,9 @@
 
 > 简洁的webhook转发设计与实现。
 
-<img align="center" src="./.res/hookreposter.icon.png">
-</img>
+<div align="center">
+    <img src="./.res/hookreposter.icon.png" />
+</div>
 
 ## 使用方式
 
