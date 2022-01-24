@@ -11,16 +11,25 @@
             "commit_author": "commits.author.username",
             "commit_modified": "commits.modified"
         },
-        "hosts": [
-            {
+        "hosts": [{
                 "name": "wework",
                 "url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=webhook_key",
                 "method": "POST",
                 "data": {
                     "msgtype": "markdown",
                     "markdown": {
-                        "content": "*INFO*\n**repository: **${repo_name}\n**address: **${repo_url}\n**pusher: **${pusher_name}\n**email: **${pusher_email}$[\n~~~\n  **commit_id: **${commit_id}\n  **message: **${commit_msg}\n  **time: **${commit_time}\n  **author: **${commit_author}\n  **modified: **${commit_modified}]"
+                        "content": "<font color=\"warning\">INFO</font>\nrepository: ${repo_name}\naddress: ${repo_url}\npusher: ${pusher_name}\nemail: ${pusher_email}$[\n>  commit_id: ${commit_id}\n>  message: ${commit_msg}\n>  time: ${commit_time}\n>  author: ${commit_author}\n>  modified: ${commit_modified}]"
                     }
+                }
+            },
+            {
+                "name": "telegram",
+                "url": "https://api.telegram.org/bot<token>/sendMessage",
+                "method": "POST",
+                "data": {
+                    "chat_id": chat_id,
+                    "text": "*repository:* ${repo_name}\n*address:* ${repo_url}\n*pusher:* ${pusher_name}\n*email:* ${pusher_email}$[\n~~~\ncommitid: ${commit_id}\nmessage: ${commit_msg}\ntime: ${commit_time}\nauthor: ${commit_author}\nmodified: ${commit_modified}]",
+                    "parse_mode": "Markdown"
                 }
             }
         ]

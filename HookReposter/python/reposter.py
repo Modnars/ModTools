@@ -1,9 +1,15 @@
 #!/usr/bin/env python3.6
 # -*- coding: UTF-8 -*-
 
-import os, copy
-import json, re, datetime, logging, logging.handlers
-import requests, flask
+import os
+import copy
+import json
+import re
+import datetime
+import logging
+import logging.handlers
+import requests
+import flask
 
 
 APP_NAME = "HookReposter"
@@ -28,13 +34,14 @@ app = flask.Flask(APP_NAME)
 
 # 日志相关
 LOG_FORMAT = "%(threadName)s|%(asctime)s|%(filename)s:%(lineno)d|%(levelname)s|%(funcName)s|%(message)s"
-LOG_PATH   = "logs"
+LOG_PATH = "logs"
+
 
 def setupLogHandler():
     if not os.path.exists(LOG_PATH):
         os.makedirs(LOG_PATH)
 
-    # app.debug = True
+    app.debug = True
 
     formatter = logging.Formatter(LOG_FORMAT)
 
@@ -46,6 +53,7 @@ def setupLogHandler():
     log_handler.setLevel(logging.DEBUG)
     app.logger.addHandler(log_handler)
 
+
 setupLogHandler()
 
 
@@ -54,9 +62,9 @@ def loadJsonObject(file_path: str) -> dict:
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             ret = json.loads(''.join(line[:-1] for line in f))
-    except Exception:
+    except Exception as e:
         ret = None
-        app.logger.error("load json file failed|file:%s", file_path)
+        app.logger.error("load json file failed|file:%s|details:%s", file_path, e)
     return ret
 
 
@@ -72,35 +80,35 @@ class RepostConfWrapper(object):
         else:
             self._is_ready = self.__checkConf()
 
-
     def isReady(self) -> bool:
         return self._is_ready
-
 
     def getParseRule(self, source: str) -> dict:
         if source in self._all_conf and "parse" in self._all_conf[source]:
             return self._all_conf[source]["parse"]
         return dict()
 
-
     def getRepostHosts(self, source: str) -> list:
         if source in self._all_conf and "hosts" in self._all_conf[source]:
             return self._all_conf[source]["hosts"]
         return list()
 
-
     def getRawRepostData(self, source: str, idx: int) -> dict:
         ret = dict()
-        if source not in self._all_conf: return ret
-        if "hosts" not in self._all_conf[source]: return ret
-        if idx >= len(self._all_conf[source]["hosts"]): return ret
-        if "data" not in self._all_conf[source]["hosts"][idx]: return ret
+        if source not in self._all_conf:
+            return ret
+        if "hosts" not in self._all_conf[source]:
+            return ret
+        if idx >= len(self._all_conf[source]["hosts"]):
+            return ret
+        if "data" not in self._all_conf[source]["hosts"][idx]:
+            return ret
         return copy.deepcopy(self._all_conf[source]["hosts"][idx]["data"])
-
 
     def __checkConf(self) -> bool:
         # TODO modnarshen 完善配置检查逻辑
         return True
+
 
 repostConfWrapper = RepostConfWrapper("repost_rules.json")
 if not repostConfWrapper.isReady():
@@ -136,7 +144,7 @@ def GetJsonField(json_data: dict, field_path: str):
 
 
 def parseLine(src: str, parse_content: dict) -> str:
-    beg = '${' 
+    beg = '${'
     end = '}'
     len_beg = len(beg)
     len_end = len(end)
@@ -161,6 +169,8 @@ def parseLine(src: str, parse_content: dict) -> str:
     all = re.findall(RE_PATT_SINGLE_FIELD, src)
     for s in all:
         src = src.replace('${%s}' % s, parse_content[s] if s in parse_content else '')
+    src = src.replace('[', '')
+    src = src.replace(']', '')
     return src
 
 
@@ -179,21 +189,23 @@ def makeRespData(data: dict, parse_content: dict) -> None:
 
 
 def doHttpRequest(url: str, method: str, data: dict):
+    headers = {'Content-Type': 'application/json'}
     if method == 'GET':
         return None
-    return requests.post(url, data=json.dumps(data, ensure_ascii=False).encode('utf-8')).json()
+    return requests.post(url, data=json.dumps(data, ensure_ascii=False).encode('utf-8'), headers=headers).json()
 
 
-'''
-处理POST请求
-'''
+''' 处理POST请求 '''
+
+
 @app.route('/', methods=['POST'])
 def process():
     rsp = dict()
     ret = 200
     try:
         source = flask.request.args.get('source')
-        if source is None: raise RuntimeError('no url param `source`')
+        if source is None:
+            raise RuntimeError('no url param `source`')
 
         recv_data = flask.request.get_json()
 
@@ -206,13 +218,13 @@ def process():
         for host in repostConfWrapper.getRepostHosts(source):
             data = copy.deepcopy(host["data"])
             makeRespData(data, parse_content)
-
+            print(data)
             app.logger.info(doHttpRequest(host["url"], host["method"], data))
 
         rsp["message"] = "ok"
         ret = 200
     except Exception as e:
-        app.logger.warn("catch exception|details: %s", str(e))
+        app.logger.warning("catch exception|details: %s", str(e))
         rsp["message"] = "process failed"
         ret = 500
 
