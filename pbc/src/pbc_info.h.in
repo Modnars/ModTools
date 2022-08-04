@@ -1,0 +1,2 @@
+#define pbc_VERSION_MAJOR @pbc_VERSION_MAJOR@
+#define pbc_VERSION_MINOR @pbc_VERSION_MINOR@
