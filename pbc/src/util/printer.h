@@ -1,6 +1,6 @@
 /*
  * @Author: modnarshen
- * @Date: 2022/05/10 19:11:05
+ * @Date: 2022/08/05 18:20:08
  * @LastEditors: modnarshen
  * @Description:
  */
@@ -15,7 +15,7 @@ extern bool DEBUG_MODE;
 constexpr std::size_t MAX_BUFFER_SIZE = 1024;
 extern char buffer[MAX_BUFFER_SIZE];
 
-class PbcPrinter {
+class Printer {
 public:
     static void raw_print(std::ostream &os, const char *fmt, std::va_list arg_list);
     static void raw_print(std::ostringstream &oss, const char *fmt, std::va_list arg_list);

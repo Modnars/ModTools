@@ -14,7 +14,10 @@ add_subdirectory(util)
 
 file(GLOB_RECURSE SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 add_executable(${PROJECT_NAME} ${SRC_FILES})
-target_link_libraries(${PROJECT_NAME} ${PROTOBUF_LIB_PATH}/libprotobuf.a)
+target_link_libraries(${PROJECT_NAME} 
+        ${PROTOBUF_LIB_PATH}/libprotobuf.a
+        pthread
+        )
 
 # for pbc_info.h
 target_include_directories(${PROJECT_NAME} PUBLIC

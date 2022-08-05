@@ -10,7 +10,7 @@
 #include <memory>
 
 #include "pbc.h"
-#include "pbc_printer.h"
+#include "util/printer.h"
 #include "util/timer.h"
 
 void InitSharedPtr(std::shared_ptr<int> &p) {

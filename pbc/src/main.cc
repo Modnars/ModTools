@@ -3,16 +3,17 @@
  * @Author: modnarshen
  * @Date: 2022/04/27 11:28:50
  * @LastEditors: modnarshen
- * @Description:
+ * @Description: 工具程序执行入口
  */
+#include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <memory>
-#include <cstdlib>
 
-#include "pbc.h"
+#include "pb_const.h"
 #include "pbc_info.h"
-#include "pbc_printer.h"
+#include "util/macro.h"
+#include "util/printer.h"
 #include "util/timer.h"
 
 void version() {
@@ -29,6 +30,12 @@ int main(int argc, char *argv[]) {
         usage(argc, argv);
         return EXIT_FAILURE;
     }
-    pbc::PbConst::GetInst().Init(argv[1]);
+    std::string proto_file = argv[1];
+    int ret = pbc::PbConst::GetInst().Init(proto_file);
+    COND_RET_ELOG(ret != 0, ret, "pbc init failed|file:%s", proto_file.c_str());
+
+    ret = pbc::PbConst::GetInst().Parse();
+    COND_RET_ELOG(ret != 0, ret, "pbc parse failed|file:%s", proto_file.c_str());
+
     return 0;
 }

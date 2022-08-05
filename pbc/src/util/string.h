@@ -15,11 +15,11 @@ namespace pbc {
 inline void split(const std::string &src, const std::string &delims, std::vector<std::string> &ret) {
     // split最优雅的实现
     std::string::size_type begin_pos = src.find_first_not_of(delims, 0);
-    std::string::size_type end_pos   = src.find_first_of(delims, begin_pos);
+    std::string::size_type end_pos = src.find_first_of(delims, begin_pos);
     while (std::string::npos != begin_pos || std::string::npos != end_pos) {
         ret.emplace_back(src.substr(begin_pos, end_pos - begin_pos));
         begin_pos = src.find_first_not_of(delims, begin_pos);
-        end_pos   = src.find_first_of(delims, begin_pos);
+        end_pos = src.find_first_of(delims, begin_pos);
     }
 }
 
