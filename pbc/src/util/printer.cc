@@ -17,11 +17,11 @@ void Printer::raw_print(std::ostream &os, const char *fmt, std::va_list arg_list
     os << buffer << std::endl;
 }
 
-void Printer::raw_print(std::ostringstream &oss, const char *fmt, std::va_list arg_list) {
+void Printer::raw_print(std::stringstream &os, const char *fmt, std::va_list arg_list) {
     std::vsnprintf(buffer, sizeof(buffer), fmt, arg_list);
-    oss << buffer;
+    os << buffer;
 }
-} // namespace pbc
+}  // namespace pbc
 
 // 运行时日志
 void OUTPUT_DEBUG(const char *fmt, ...) {
@@ -55,9 +55,16 @@ void OUTPUT_STDOUT(const char *fmt, ...) {
     va_end(arg_list);
 }
 
-void OUTPUT(std::ostringstream &oss, const char *fmt, ...) {
+void OUTPUT_STDERR(const char *fmt, ...) {
     std::va_list arg_list;
     va_start(arg_list, fmt);
-    pbc::Printer::raw_print(oss, fmt, arg_list);
+    pbc::Printer::raw_print(std::cerr, fmt, arg_list);
+    va_end(arg_list);
+}
+
+void OUTPUT(std::stringstream &output, const char *fmt, ...) {
+    std::va_list arg_list;
+    va_start(arg_list, fmt);
+    pbc::Printer::raw_print(output, fmt, arg_list);
     va_end(arg_list);
 }

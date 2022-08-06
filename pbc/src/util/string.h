@@ -9,7 +9,20 @@
 #include <string>
 #include <vector>
 
+#include "macro.h"
+
 namespace pbc {
+
+inline std::string &trim(std::string &s) {
+    COND_RET(s.empty(), s);
+    s.erase(0, s.find_first_not_of(" "));
+    s.erase(s.find_last_not_of(" \r") + 1);
+    return s;
+}
+
+inline std::size_t count(const std::string &s, char c) {
+    return std::count(s.begin(), s.end(), c);
+}
 
 // 以delims集合中的字符作为分隔符
 inline void split(const std::string &src, const std::string &delims, std::vector<std::string> &ret) {

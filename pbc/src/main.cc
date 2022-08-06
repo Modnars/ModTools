@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
     std::string proto_file = argv[1];
-    int ret = pbc::PbConst::GetInst().Init(proto_file);
+    int ret = pbc::PbConst::GetInst().Init("", {}, "", "");
     COND_RET_ELOG(ret != 0, ret, "pbc init failed|file:%s", proto_file.c_str());
 
     ret = pbc::PbConst::GetInst().Parse();

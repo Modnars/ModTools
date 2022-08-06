@@ -18,13 +18,14 @@ extern char buffer[MAX_BUFFER_SIZE];
 class Printer {
 public:
     static void raw_print(std::ostream &os, const char *fmt, std::va_list arg_list);
-    static void raw_print(std::ostringstream &oss, const char *fmt, std::va_list arg_list);
+    static void raw_print(std::stringstream &os, const char *fmt, std::va_list arg_list);
 };
-} // namespace pbc
+}  // namespace pbc
 
 // macro-like functions
 void OUTPUT_DEBUG(const char *fmt, ...);
 void OUTPUT_INFO(const char *fmt, ...);
 void OUTPUT_ERROR(const char *fmt, ...);
 void OUTPUT_STDOUT(const char *fmt, ...);
-void OUTPUT(std::ostringstream &oss, const char *fmt, ...);
+void OUTPUT_STDERR(const char *fmt, ...);
+void OUTPUT(std::stringstream &output, const char *fmt, ...);

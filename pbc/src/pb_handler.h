@@ -12,16 +12,18 @@
 
 namespace pb = google::protobuf;
 
+static const std::size_t PB_POSTFIX_LEN = std::strlen(".proto");
+
 enum ErrorCode {
-    SUCCESS = 0,
-    ERR_INIT_FAILED = 1,
-    ERR_PROCESS_NONE = 2,
+    PROCESS_SUCCESS = 0,
+    PROCESS_FAILURE = 1,
+    PROCESS_NONE = 2,
 };
 
 class PbHandler {
 public:
-    PbHandler() {}
-    virtual ~PbHandler() {}
+    PbHandler() { }
+    virtual ~PbHandler() { }
 
 public:
     // 依赖
@@ -38,6 +40,8 @@ public:
 protected:
     // 依赖处理
     virtual int handle_dependency(const pb::FileDescriptor *file_desc, const pb::FileDescriptor *dep_desc) = 0;
+    // 处理 package
+    virtual int handle_package(const pb::FileDescriptor *file_desc) = 0;
     // 文件级别的枚举处理函数
     virtual int handle_enum(const pb::FileDescriptor *file_desc, const pb::EnumDescriptor *enum_desc) = 0;
     // 类级别的枚举处理函数

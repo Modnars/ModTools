@@ -25,6 +25,8 @@ IndentWidth:     4
 TabWidth:        4
 IncludeBlocks: Preserve
 
-SpacesBeforeTrailingComments: 1
+SpacesBeforeTrailingComments: 2  # 单行代码注释前填充两个空格
 AlignConsecutiveMacros: true
 AlignConsecutiveAssignments: false
+Cpp11BracedListStyle: true
+SpaceInEmptyBlock: true  # 空代码块使用单个空格填充
