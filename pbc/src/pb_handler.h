@@ -13,6 +13,8 @@
 namespace pb = google::protobuf;
 
 static const std::size_t PB_POSTFIX_LEN = std::strlen(".proto");
+static const std::size_t INDENT_SPACE_NUM = 4;
+static const std::string LIMIT_COUNT_POSTFIX = "_COUNT";
 
 enum ErrorCode {
     PROCESS_SUCCESS = 0,
