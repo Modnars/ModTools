@@ -165,27 +165,27 @@ protected:
     int generate_debugstring_func(const pb::Descriptor *msg_desc);
 
     /* ********** 注释相关 ********** */
-    // 通用field注释的处理函数，能处理message field和enum value
-    // @param loc[IN] 跟field或者value对应的SourceLocation
-    // @param cmds[OUT] 以命令字为key，attachment为value的map
+    // 通用 field 注释的处理函数，能处理 message field 和 enum value
+    // @param loc[IN] 跟 field 或者 value 对应的 SourceLocation
+    // @param cmds[OUT] 以命令字为 key，attachment 为 value 的 map
     // @param leading_comment[OUT] 前置注释
     // @param trailing_comment[OUT] 后置注释
     // @param indent_num[IN] 缩进，只用于生成注释
     int handle_field_comment(const pb::SourceLocation &loc, std::map<std::string, std::string> &cmds,
-                             std::string &leading_comment, std::string &trailing_comment, int indent_num);
+                             std::string &leading_comment, std::string &trailing_comment, int indent_num) const;
 
     // 注释通用处理，处理注释的入口
-    // @param src[IN/OUT] 与field相关的前置或者后置注释，处理后会删掉命令行
-    // @param cmds[OUT] 以命令字或者"comment"为key，attachment为value的map
+    // @param src[IN/OUT] 与 field 相关的前置或者后置注释，处理后会删掉命令行
+    // @param cmds[OUT] 以命令字或者 "comment" 为 key，attachment 为 value 的 map
     // @param indent_num[IN] 缩进，只用于生成的注释
-    int handle_comment(std::string &src, std::map<std::string, std::string> &cmds, int indent_num);
+    int handle_comment(std::string &src, std::map<std::string, std::string> &cmds, int indent_num) const;
 
     // 将注释内容处理成为注释块
     // @param context[IN] 单行或者多行的注释内容
-    // @param comment[OUT] 标准C++注释，单行使用single-line comment，多行使用block comment
+    // @param comment[OUT] 标准 C++ 注释，单行使用 one-line comment，多行使用 block comment
     // @param indent_num[IN] 缩进，1 indent_num == 4 * space
-    // @param is_single_line[IN] 在proto文件中是否是single-line comment
-    int generate_comment(const std::string &context, std::string &comment, int indent_num, bool is_single_line);
+    // @param one_line[IN] 在proto文件中是否是 one-line comment
+    int generate_comment(const std::string &context, std::string &comment, int indent_num, bool is_one_line) const;
 
 private:
     // example: $ pbc --proto_path=PATH --cpp_out=OUT_DIR --file_name=FILE_NAME source/example.proto

@@ -191,16 +191,145 @@ int PbConst::handle_package(const pb::FileDescriptor *file_desc) {
 }
 
 int PbConst::handle_enum(const pb::FileDescriptor *file_desc, const pb::EnumDescriptor *enum_desc) {
+    // 如果需要生成 enum 代码，额外开一个 stringstream 来存，最后按照次序写入头文件
     return ErrorCode::PROCESS_SUCCESS;
 }
 
 int PbConst::handle_enum(const pb::Descriptor *msg_desc, const pb::EnumDescriptor *enum_desc) {
-    return 0;
+    return generate_enum(enum_desc, ss_struct_def_, 1);
 }
 
 int PbConst::handle_message(const pb::FileDescriptor *file_desc, const pb::Descriptor *msg_desc) {
-    return 0;
-}
+    OUTPUT_DEBUG("START HANDLE Message: %s", msg_desc->name().c_str());
+    int ret;
+    // name
+    std::string struct_name = get_type_name(msg_desc->name());
+
+    // 检查 pbc_node，默认不生成 struct
+    std::string msg_comment;
+    COND_RET(!CheckMessageAndGetComment(msg_desc, msg_comment), ErrorCode::PROCESS_NONE);
+
+    // 检查文件和 message 的依赖性
+    std::string err_msg;
+    COND_RET_ELOG(!CheckMessageDependency(msg_desc, &err_msg), ErrorCode::PROCESS_FAILURE,
+                  "dependency check failed|error: \"%s\"", err_msg.c_str());
+
+    // 检查 field 的参数是否合法
+    COND_RET(!CheckFieldsParams(msg_desc), ErrorCode::PROCESS_FAILURE);
+
+    // 前置声明
+    OUTPUT(ss_declaration_, "struct %s;\n", struct_name.c_str());
+
+    // message 注释
+    COND_EXP(!msg_comment.empty(), OUTPUT(ss_struct_def_, "%s\n", msg_comment.c_str()));
+
+    // 类声明开始
+    OUTPUT(ss_struct_def_, "struct %s {\n", struct_name.c_str());
+
+    // 把自定义代码输出
+    generate_class_pbc_code(msg_desc);
+
+    // message 内部嵌套类
+    ret = for_each_nested(msg_desc);
+    COND_RET_ELOG(ret != ErrorCode::PROCESS_SUCCESS, ret, "    trace file[%s]", file_desc->name().c_str());
+
+    // message 内部 enum 声明
+    ret = for_each_enum(msg_desc);
+    COND_RET_ELOG(ret != ErrorCode::PROCESS_SUCCESS, ret, "    trace file[%s]", file_desc->name().c_str());
+
+    // 生成成员变量
+    ret = generate_member_var(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 生成构造函数
+    ret = generate_construct_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 生成 Clean 函数
+    ret = generate_clean_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 生成 FromPb 函数
+    ret = generate_frompb_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 生成 ToPb 函数
+    ret = generate_topb_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 普通结构的 Get 函数
+    ret = generate_get_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 普通结构的 Set 函数
+    ret = generate_set_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 为所有 repeated 结构生成 Size 函数
+    ret = generate_repeated_size_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 为所有 repeated 结构生成 Get 函数
+    ret = generate_repeated_get_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 为所有 repeated 结构生成 Set 函数
+    ret = generate_repeated_set_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 为所有 repeated 结构生成 Add 函数
+    ret = generate_repeated_add_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 为所有 repeated 结构生成 Del 函数
+    ret = generate_repeated_del_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 为所有 repeated 结构生成 DelByKey 函数
+    ret = generate_repeated_del_by_key_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 为所有 repeated 结构生成 delbatch 函数
+    ret = generate_repeated_del_batch_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 为所有 repeated 结构生成 find by key 函数
+    ret = generate_repeated_find_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 为所有 repeated 结构生成 Swap 函数
+    ret = generate_repeated_swap_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 为所有 repeated 结构生成 is_full 函数
+    ret = generate_repeated_full_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 为所有 repeated 结构生成 is_empty 函数
+    ret = generate_repeated_empty_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 生成 ShortDebugString 函数
+    ret = generate_debugstring_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 为这个message生成比较函数，如果有的话
+    ret = generate_key_compare_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 为所有整形添加和减函数，默认 +1
+    ret = generate_inc_and_dec_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 为所有成员变量生成 clear 函数
+    ret = generate_clear_member_func(msg_desc);
+    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+
+    // 类声明结束
+    OUTPUT(ss_struct_def_, "};\n\n");
+
+    return ErrorCode::PROCESS_SUCCESS;
+}  // namespace pbc
 
 int PbConst::handle_nested(const pb::Descriptor *msg_desc, const pb::Descriptor *nested_desc) {
     OUTPUT_STDERR("Sorry, pbc does not support nested message currently, please shift it out to continue.");
@@ -260,6 +389,32 @@ bool PbConst::CheckMessageDependency(const pb::Descriptor *msg_desc, std::string
 }
 
 bool PbConst::CheckFieldsParams(const pb::Descriptor *msg_desc) const {
+    for (int i = 0; i < msg_desc->field_count(); ++i) {
+        const auto *field_desc = msg_desc->field(i);
+
+        std::string leading_comment, trailing_comment;
+        std::map<std::string, std::string> cmds;
+
+        pb::SourceLocation loc;
+        field_desc->GetSourceLocation(&loc);
+        handle_field_comment(loc, cmds, leading_comment, trailing_comment, 1);
+
+        // not support enum field
+        COND_RET_ELOG(
+            field_desc->cpp_type() == pb::FieldDescriptor::CPPTYPE_ENUM, false,
+            "pbc doesn't support enum_type field currently, change it to uint32 and try again|message:%s|enum:%s",
+            msg_desc->name().c_str(), field_desc->name().c_str());
+        // array must have @pbc_len or @pbc_fix
+        bool is_array = (field_desc->is_repeated() || (field_desc->cpp_type() == pb::FieldDescriptor::CPPTYPE_STRING));
+        COND_RET_ELOG(is_array && !cmds.count("@pbc_len") && !cmds.count("@pbc_fix") && !cmds.count("@pbc_vector"),
+                      false, "repeated or string field must has command @pbc_len or @pbc_fix|message:%s|field:%s",
+                      msg_desc->name().c_str(), field_desc->name().c_str());
+        // not support repeated string
+        COND_RET_ELOG(field_desc->is_repeated() && (field_desc->cpp_type() == pb::FieldDescriptor::CPPTYPE_STRING),
+                      false, "sorry, pbc doesn't support repeated string field|message:%s|field:%s",
+                      msg_desc->name().c_str(), field_desc->name().c_str())
+    }
+
     return true;
 }
 
@@ -1637,7 +1792,7 @@ int PbConst::generate_debugstring_func(const pb::Descriptor *msg_desc) {
 }
 
 int PbConst::handle_field_comment(const pb::SourceLocation &loc, std::map<std::string, std::string> &cmds,
-                                  std::string &leading_comment, std::string &trailing_comment, int indent_num) {
+                                  std::string &leading_comment, std::string &trailing_comment, int indent_num) const {
     std::string src;
     cmds.clear();
     leading_comment.clear();
@@ -1690,7 +1845,7 @@ int PbConst::handle_field_comment(const pb::SourceLocation &loc, std::map<std::s
     return ErrorCode::PROCESS_SUCCESS;
 }
 
-int PbConst::handle_comment(std::string &src, std::map<std::string, std::string> &cmds, int indent_num) {
+int PbConst::handle_comment(std::string &src, std::map<std::string, std::string> &cmds, int indent_num) const {
     int ret;
     int cnt = pbc::count(src, '\n');
     for (auto iter = cmd_handler_map_.begin(); iter != cmd_handler_map_.end(); ++iter) {
@@ -1707,7 +1862,7 @@ int PbConst::handle_comment(std::string &src, std::map<std::string, std::string>
     return ErrorCode::PROCESS_SUCCESS;
 }
 
-int PbConst::generate_comment(const std::string &context, std::string &comment, int indent_num, bool is_single_line) {
+int PbConst::generate_comment(const std::string &context, std::string &comment, int indent_num, bool one_line) const {
     std::string indentation(4 * indent_num, ' ');
     comment.clear();
     std::string src = context;
@@ -1716,7 +1871,7 @@ int PbConst::generate_comment(const std::string &context, std::string &comment, 
         // 使用双斜杠单行注释或者使用/* */注释但只有两行
         // 形如： /* single line comment..
         //        */
-        if (is_single_line) {
+        if (one_line) {
             pbc::trim(src);
             /*
              * 忽略仅仅用双斜杠注释的内容，因为有可能是废弃字段
