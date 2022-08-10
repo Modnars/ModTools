@@ -215,7 +215,7 @@ int PbConst::handle_message(const pb::FileDescriptor *file_desc, const pb::Descr
                   "dependency check failed|error: \"%s\"", err_msg.c_str());
 
     // 检查 field 的参数是否合法
-    COND_RET(!CheckFieldsParams(msg_desc), ErrorCode::PROCESS_FAILURE);
+    COND_RET(!CheckFieldProperties(msg_desc), ErrorCode::PROCESS_FAILURE);
 
     // 前置声明
     OUTPUT(ss_declaration_, "struct %s;\n", struct_name.c_str());
@@ -366,7 +366,25 @@ bool PbConst::CheckFileAndGetDeclarationCode(const pb::FileDescriptor *file_desc
 }
 
 bool PbConst::CheckMessageAndGetComment(const pb::Descriptor *msg_desc, std::string &comment) const {
-    return true;
+    pb::SourceLocation loc;
+    msg_desc->GetSourceLocation(&loc);
+    comment.clear();
+
+    if (!loc.leading_comments.empty()) {
+        std::string src = loc.leading_comments;
+        std::string attachment;
+        int ret = handle_common_cmd("@pbc_node", src, attachment);
+        if (ret == ErrorCode::PROCESS_SUCCESS) {
+            if (!src.empty()) {
+                // 过滤掉 pbc_code 的部分
+                std::string pbc_code_block;
+                handle_common_cmd("@pbc_code", src, pbc_code_block);
+                generate_comment(src, comment, 0, false);
+            }
+            return true;
+        }
+    }
+    return false;
 }
 
 bool PbConst::CheckMessageDependency(const pb::Descriptor *msg_desc, std::string *err_msg) const {
@@ -388,7 +406,7 @@ bool PbConst::CheckMessageDependency(const pb::Descriptor *msg_desc, std::string
     return true;
 }
 
-bool PbConst::CheckFieldsParams(const pb::Descriptor *msg_desc) const {
+bool PbConst::CheckFieldProperties(const pb::Descriptor *msg_desc) const {
     for (int i = 0; i < msg_desc->field_count(); ++i) {
         const auto *field_desc = msg_desc->field(i);
 

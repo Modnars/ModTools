@@ -90,8 +90,8 @@ private:
     bool CheckMessageAndGetComment(const pb::Descriptor *msg_desc, std::string &comment) const;
     // 检查 message 所依赖的 message 是否生成代码
     bool CheckMessageDependency(const pb::Descriptor *msg_desc, std::string *err_msg) const;
-    // 检查 field 的参数是否合法
-    bool CheckFieldsParams(const pb::Descriptor *msg_desc) const;
+    // 检查 field 的属性参数是否合法
+    bool CheckFieldProperties(const pb::Descriptor *msg_desc) const;
 
 private:
     // 通用命令字处理
