@@ -33,3 +33,6 @@ build/
 # Cmake Production
 Makefile
 
+# pbc
+*.pbc.h
+*.pbc.cc
