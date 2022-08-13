@@ -2,3 +2,6 @@
 cache/
 *.out
 
+# macOS's custom directory icon
+Icon?
+
