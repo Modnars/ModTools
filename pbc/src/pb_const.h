@@ -6,6 +6,8 @@
  */
 #pragma once
 
+#include <functional>
+
 #include <google/protobuf/compiler/importer.h>
 #include <google/protobuf/descriptor.h>
 

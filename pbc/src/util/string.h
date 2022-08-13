@@ -31,7 +31,7 @@ inline void split(const std::string &src, const std::string &delims, std::vector
     std::string::size_type end_pos = src.find_first_of(delims, begin_pos);
     while (std::string::npos != begin_pos || std::string::npos != end_pos) {
         ret.emplace_back(src.substr(begin_pos, end_pos - begin_pos));
-        begin_pos = src.find_first_not_of(delims, begin_pos);
+        begin_pos = src.find_first_not_of(delims, end_pos);
         end_pos = src.find_first_of(delims, begin_pos);
     }
 }

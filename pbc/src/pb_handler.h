@@ -6,6 +6,8 @@
  */
 #pragma once
 
+#include <cstring>
+
 // protobuf
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>

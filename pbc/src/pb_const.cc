@@ -38,9 +38,12 @@ int PbConst::Init(const std::string &proto_filepath, const std::vector<std::stri
     else
         out_file_name_ = proto_filename_.substr(0, proto_filename_.find_first_of('.'));
 
+    out_file_path_.assign(out_file_path);
+    OUTPUT_DEBUG("cpp out path: %s", out_file_path_.c_str());
+
     COND_RET(out_file_name_.empty(), false);
-    out_hd_filepath_ = out_file_name_ + out_hd_file_postfix_;
-    out_cc_filepath_ = out_file_name_ + out_cc_file_postfix_;
+    out_hd_filepath_ = out_file_path_ + "/" + out_file_name_ + out_hd_file_postfix_;
+    out_cc_filepath_ = out_file_path_ + "/" + out_file_name_ + out_cc_file_postfix_;
     OUTPUT_INFO("output: %s, %s", out_hd_filepath_.c_str(), out_cc_filepath_.c_str());
 
     src_tree_.MapPath("", "./");  // 默认加入当前目录
@@ -69,9 +72,6 @@ int PbConst::Init(const std::string &proto_filepath, const std::vector<std::stri
     file_desc_ = importer_->Import(proto_filename_);
     COND_EXP_ELOG(!file_desc_, error_collector_.PrintError();
                   return ErrorCode::PROCESS_FAILURE, "cannot open proto file|file:%s", proto_filename_.c_str());
-
-    out_hd_filepath_ = out_file_path_ + "/" + out_file_name_ + out_hd_file_postfix_;
-    out_cc_filepath_ = out_file_path_ + "/" + out_file_name_ + out_cc_file_postfix_;
 
     auto ret = CheckOnInit();
     COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ret);
@@ -143,9 +143,18 @@ int PbConst::Parse() {
 
     // namespace 结束
     for (std::size_t i = 0; i < namespace_num_; ++i) {
-        OUTPUT(ss_hd_, "}  // namespace");
-        OUTPUT(ss_cc_, "}  // namespace");
+        OUTPUT(ss_hd_, "}  // namespace\n");
+        OUTPUT(ss_cc_, "}  // namespace\n");
     }
+
+    // 写入文件
+    ret = write_file(ss_hd_, out_hd_filepath_);
+    COND_RET_ELOG(ret != ErrorCode::PROCESS_SUCCESS, ret, "write file failed|out_file:%s|ret:%d",
+                  out_hd_filepath_.c_str(), ret);
+
+    ret = write_file(ss_cc_, out_cc_filepath_);
+    COND_RET_ELOG(ret != ErrorCode::PROCESS_SUCCESS, ret, "write file failed|out_file:%s|ret:%d",
+                  out_cc_filepath_.c_str(), ret);
 
     return ret;
 }
@@ -232,6 +241,8 @@ int PbConst::handle_message(const pb::FileDescriptor *file_desc, const pb::Descr
     // message 内部嵌套类
     ret = for_each_nested(msg_desc);
     COND_RET_ELOG(ret != ErrorCode::PROCESS_SUCCESS, ret, "    trace file[%s]", file_desc->name().c_str());
+
+    std::cout << "OK [1]" << std::endl;
 
     // message 内部 enum 声明
     ret = for_each_enum(msg_desc);
@@ -350,12 +361,11 @@ bool PbConst::CheckFileAndGetDeclarationCode(const pb::FileDescriptor *file_desc
     file_desc->CopySourceCodeInfoTo(&file_proto);
     const pb::SourceCodeInfo *src_info = &file_proto.source_code_info();
 
-    for (int i = 0; i < src_info->location_size(); ++i) {
-        const auto *loc = &src_info->location(i);
-        if ((loc->path_size() == 1 && loc->path(0) == 2) ||  // import
-            (loc->path_size() == 2 && loc->path(0) == 3)) {  // package
-            if (!loc->leading_comments().empty()) {
-                std::string src = loc->leading_comments();
+    for (const auto &loc : file_proto.source_code_info().location()) {
+        if ((loc.path_size() == 1 && loc.path(0) == 2) ||  // import
+            (loc.path_size() == 2 && loc.path(0) == 3)) {  // package
+            if (!loc.leading_comments().empty()) {
+                std::string src = loc.leading_comments();
                 std::string attachment;
                 ret = handle_common_cmd("@pbc_declare", src, attachment);
                 COND_EXP(ret == ErrorCode::PROCESS_SUCCESS, std::swap(code_block, src); return true);

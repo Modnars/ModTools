@@ -84,10 +84,10 @@ int main(int argc, char *argv[]) {
     }
 
     int ret = pbc::PbConst::GetInst().Init(proto_filepath, proto_file_path, out_file_path, out_file_name);
-    COND_RET_ELOG(ret != 0, ret, "pbc init failed|file:%s", proto_filepath.c_str());
+    COND_RET_ELOG(ret != 0, ret, "pbc init failed|file:%s|ret:%d", proto_filepath.c_str(), ret);
 
     ret = pbc::PbConst::GetInst().Parse();
-    COND_RET_ELOG(ret != 0, ret, "pbc parse failed|file:%s", proto_filepath.c_str());
+    COND_RET_ELOG(ret != 0, ret, "pbc parse failed|file:%s|ret:%d", proto_filepath.c_str(), ret);
 
     return 0;
 }

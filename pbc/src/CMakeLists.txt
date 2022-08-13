@@ -20,9 +20,7 @@ target_link_libraries(${PROJECT_NAME}
         )
 
 # for pbc_info.h
-target_include_directories(${PROJECT_NAME} PUBLIC
-                           "${PROJECT_BINARY_DIR}/src"
-                           )
+target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}/src" PUBLIC "${PROTOBUF_INCLUDE_PATH}")
 
 # add the install targets
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
