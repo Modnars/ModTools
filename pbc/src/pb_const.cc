@@ -153,9 +153,12 @@ int PbConst::Parse() {
     COND_EXP(!ss_struct_def_.str().empty(), ss_hd_ << ss_struct_def_.str() << std::endl);
 
     // namespace 结束
-    for (std::size_t i = 0; i < namespace_num_; ++i) {
-        OUTPUT(ss_hd_, "}  // namespace\n");
-        OUTPUT(ss_cc_, "}  // namespace\n");
+    std::vector<std::string> nss;
+    pbc::split(pbc_namespace_, CXX_NS_DELIMS, nss);
+    for (std::size_t i = namespace_num_; i > 0; --i) {
+        std::string ns = (i > nss.size() ? "" : " " + nss[i - 1]);
+        OUTPUT(ss_hd_, "}  // namespace%s\n", ns.c_str());
+        OUTPUT(ss_cc_, "}  // namespace%s\n", ns.c_str());
     }
 
     // 写入文件
@@ -253,99 +256,83 @@ int PbConst::handle_message(const pb::FileDescriptor *file_desc, const pb::Descr
     ret = for_each_nested(msg_desc);
     COND_RET_ELOG(ret != ErrorCode::PROCESS_SUCCESS, ret, "    trace file[%s]", file_desc->name().c_str());
 
-    std::cout << "OK [1]" << std::endl;
-
     // message 内部 enum 声明
     ret = for_each_enum(msg_desc);
     COND_RET_ELOG(ret != ErrorCode::PROCESS_SUCCESS, ret, "    trace file[%s]", file_desc->name().c_str());
 
+#define GENERATE_CODE(callFunc)                                                                                        \
+    {                                                                                                                  \
+        ret = callFunc(msg_desc);                                                                                      \
+        COND_RET_ELOG(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE, #callFunc " failed|ret:%d", ret); \
+    }
+
     // 生成成员变量
-    ret = generate_member_var(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_member_var);
 
     // 生成构造函数
-    ret = generate_construct_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_construct_func);
 
     // 生成 Clean 函数
-    ret = generate_clean_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_clean_func);
 
     // 生成 FromPb 函数
-    ret = generate_frompb_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_frompb_func);
 
     // 生成 ToPb 函数
-    ret = generate_topb_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_topb_func);
 
     // 普通结构的 Get 函数
-    ret = generate_get_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_get_func);
 
     // 普通结构的 Set 函数
-    ret = generate_set_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_set_func);
 
     // 为所有 repeated 结构生成 Size 函数
-    ret = generate_repeated_size_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_repeated_size_func);
 
     // 为所有 repeated 结构生成 Get 函数
-    ret = generate_repeated_get_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_repeated_get_func);
 
     // 为所有 repeated 结构生成 Set 函数
-    ret = generate_repeated_set_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_repeated_set_func);
 
     // 为所有 repeated 结构生成 Add 函数
-    ret = generate_repeated_add_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_repeated_add_func);
 
     // 为所有 repeated 结构生成 Del 函数
-    ret = generate_repeated_del_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_repeated_del_func);
 
     // 为所有 repeated 结构生成 DelByKey 函数
-    ret = generate_repeated_del_by_key_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_repeated_del_by_key_func);
 
     // 为所有 repeated 结构生成 delbatch 函数
-    ret = generate_repeated_del_batch_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_repeated_del_batch_func);
 
     // 为所有 repeated 结构生成 find by key 函数
-    ret = generate_repeated_find_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_repeated_find_func);
 
     // 为所有 repeated 结构生成 Swap 函数
-    ret = generate_repeated_swap_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_repeated_swap_func);
 
     // 为所有 repeated 结构生成 is_full 函数
-    ret = generate_repeated_full_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_repeated_full_func);
 
     // 为所有 repeated 结构生成 is_empty 函数
-    ret = generate_repeated_empty_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_repeated_empty_func);
 
     // 生成 ShortDebugString 函数
-    ret = generate_debugstring_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_debugstring_func);
 
-    // 为这个message生成比较函数，如果有的话
-    ret = generate_key_compare_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    // 为这个 message 生成 key 比较函数，如果有的话
+    GENERATE_CODE(generate_key_compare_func);
 
     // 为所有整形添加和减函数，默认 +1
-    ret = generate_inc_and_dec_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_inc_and_dec_func);
 
     // 为所有成员变量生成 clear 函数
-    ret = generate_clear_member_func(msg_desc);
-    COND_RET(ret != ErrorCode::PROCESS_SUCCESS, ErrorCode::PROCESS_FAILURE);
+    GENERATE_CODE(generate_clear_member_func);
+
+#undef GENERATE_CODE
 
     // 类声明结束
     OUTPUT(ss_struct_def_, "};\n\n");
@@ -485,7 +472,7 @@ int PbConst::handle_common_cmd(const std::string &cmd, std::string &src, std::st
 }
 
 void PbConst::push_namespace(std::string &ns, const std::string &add_ns) {
-    ns += (ns.empty() ? add_ns : "::" + add_ns);
+    ns += (ns.empty() ? add_ns : CXX_NS_DELIMS + add_ns);
 }
 
 std::string PbConst::get_type_name(const std::string &proto_type_name) const {
@@ -684,13 +671,13 @@ int PbConst::generate_member_var(const pb::Descriptor *msg_desc) {
                 OUTPUT(ss_struct_def_, "%sfixed_vector_%s_type %s_;\n", INDENTATION(tab_num),
                        field_desc->name().c_str(), field_desc->name().c_str());
             } else if (field_desc->cpp_type() != pb::FieldDescriptor::CPPTYPE_MESSAGE) {
-                // 这里直接用max_len, 如果是数组，不定义php_fix
-                // 或者php_len本来就是不对的，让这个问题在编译的时候报错
+                // 这里直接用 max_len, 如果是数组，不定义 pbc_fix
+                // 或者 pbc_len 本来就是不对的，让这个问题在编译的时候报错
                 OUTPUT(ss_struct_def_, "%s%s %s_[%s] = {0};\n", INDENTATION(tab_num), type_name.c_str(),
                        field_desc->name().c_str(), max_len.c_str());
             } else {
-                // 这里直接用max_len, 如果是数组，不定义php_fix
-                // 或者php_len本来就是不对的，让这个问题在编译的时候报错
+                // 这里直接用 max_len, 如果是数组，不定义 pbc_fix
+                // 或者 pbc_len 本来就是不对的，让这个问题在编译的时候报错
                 OUTPUT(ss_struct_def_, "%s%s %s_[%s];\n", INDENTATION(tab_num), type_name.c_str(),
                        field_desc->name().c_str(), max_len.c_str());
             }
@@ -776,11 +763,13 @@ int PbConst::generate_frompb_func(const pb::Descriptor *msg_desc) {
     // method FromPb
     OUTPUT(ss_cc_, "bool %s::FromPb(const %s::%s &pf, std::string *errmsg) {\n", struct_name.c_str(),
            message_namespace_.c_str(), msg_desc->name().c_str());
-    OUTPUT(ss_cc_, "    bool _bret = true;\n");
-    OUTPUT(ss_cc_, "    Clean();\n");
+    OUTPUT(ss_cc_, "%sbool _bret = true;\n", INDENTATION(tab_num));
+    OUTPUT(ss_cc_, "%sClean();\n", INDENTATION(tab_num));
 
+    const auto &msg_name = msg_desc->name();
     for (int i = 0; i < msg_desc->field_count(); ++i) {
         const auto *field_desc = msg_desc->field(i);
+        const auto field_name = field_desc->name();
 
         pb::SourceLocation loc;
         field_desc->GetSourceLocation(&loc);
@@ -790,53 +779,54 @@ int PbConst::generate_frompb_func(const pb::Descriptor *msg_desc) {
         std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(), ::tolower);
         // frompb
         if (field_desc->is_repeated()) {
-            OUTPUT(ss_cc_, "%sif (static_cast<uint32_t>(pf.%s_size()) > %s)\n    {\n", INDENTATION(tab_num),
-                   lower_name.c_str(), get_repeated_limit(field_desc->name()).c_str());
-            OUTPUT(ss_cc_, "%s    if (errmsg) errmsg->assign(\"%s.%s size bigger than max\");\n", INDENTATION(tab_num),
-                   msg_desc->name().c_str(), field_desc->name().c_str());
-            OUTPUT(ss_cc_, "%s    return false;\n", INDENTATION(tab_num));
-            OUTPUT(ss_cc_, "%s}\n\n", INDENTATION(tab_num));
+            OUTPUT(ss_cc_, "%sif (static_cast<uint32_t>(pf.%s_size()) > %s) {\n", INDENTATION(tab_num),
+                   lower_name.c_str(), get_repeated_limit(field_name).c_str());
+            OUTPUT(ss_cc_, "%sif (errmsg)\n", INDENTATION(++tab_num));
+            OUTPUT(ss_cc_, "%serrmsg->assign(\"%s.%s size bigger than max\");\n", INDENTATION(tab_num + 1),
+                   msg_name.c_str(), field_name.c_str());
+            OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(tab_num));
+            OUTPUT(ss_cc_, "%s}\n\n", INDENTATION(--tab_num));
             if (cmds.count("@pbc_vector")) {
-                OUTPUT(ss_cc_, "%s%s_.resize(pf.%s_size());\n", INDENTATION(tab_num), field_desc->name().c_str(),
+                OUTPUT(ss_cc_, "%s%s_.resize(pf.%s_size());\n", INDENTATION(tab_num), field_name.c_str(),
                        lower_name.c_str());
             } else if (!cmds.count("@pbc_fix")) {
-                OUTPUT(ss_cc_, "%s%s_num_ = pf.%s_size();\n", INDENTATION(tab_num), field_desc->name().c_str(),
+                OUTPUT(ss_cc_, "%s%s_num_ = pf.%s_size();\n", INDENTATION(tab_num), field_name.c_str(),
                        lower_name.c_str());
             }
             OUTPUT(ss_cc_, "%sfor (uint32_t i = 0; i < static_cast<uint32_t>(pf.%s_size()); ++i)\n",
                    INDENTATION(tab_num), lower_name.c_str());
             if (field_desc->cpp_type() == pb::FieldDescriptor::CPPTYPE_MESSAGE) {
-                OUTPUT(ss_cc_, "%s    _bret = _bret && %s_[i].FromPb(pf.%s(i), errmsg);\n\n", INDENTATION(tab_num),
-                       field_desc->name().c_str(), lower_name.c_str());
+                OUTPUT(ss_cc_, "%s_bret = _bret && %s_[i].FromPb(pf.%s(i), errmsg);\n\n", INDENTATION(tab_num + 1),
+                       field_name.c_str(), lower_name.c_str());
             } else {
-                OUTPUT(ss_cc_, "%s    %s_[i] = pf.%s(i);\n\n", INDENTATION(tab_num), field_desc->name().c_str(),
+                OUTPUT(ss_cc_, "%s%s_[i] = pf.%s(i);\n\n", INDENTATION(tab_num + 1), field_name.c_str(),
                        lower_name.c_str());
             }
         } else {
             if (field_desc->cpp_type() == pb::FieldDescriptor::CPPTYPE_STRING) {
                 OUTPUT(ss_cc_, "%s\n", INDENTATION(tab_num));
-                OUTPUT(ss_cc_, "%sif (pf.%s().length() > %s)\n%s{\n", INDENTATION(tab_num), lower_name.c_str(),
-                       get_repeated_limit(field_desc->name()).c_str(), INDENTATION(tab_num));
-                OUTPUT(ss_cc_, "%s    if (errmsg) errmsg->assign(\"%s.%s length bigger than max\");\n",
-                       INDENTATION(tab_num), msg_desc->name().c_str(), field_desc->name().c_str());
-                OUTPUT(ss_cc_, "%s        return false;\n", INDENTATION(tab_num));
-                OUTPUT(ss_cc_, "%s}\n", INDENTATION(tab_num));
+                OUTPUT(ss_cc_, "%sif (pf.%s().length() > %s) {\n", INDENTATION(tab_num), lower_name.c_str(),
+                       get_repeated_limit(field_name).c_str());
+                OUTPUT(ss_cc_, "%sif (errmsg)\n", INDENTATION(++tab_num));
+                OUTPUT(ss_cc_, "%serrmsg->assign(\"%s.%s length bigger than max\");\n", INDENTATION(tab_num + 1),
+                       msg_name.c_str(), field_name.c_str());
+                OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(tab_num));
+                OUTPUT(ss_cc_, "%s}\n", INDENTATION(--tab_num));
 
                 if (cmds.count("@pbc_fix")) {
                     OUTPUT(ss_cc_, "%spf.%s().copy(%s_, pf.%s().length());\n", INDENTATION(tab_num), lower_name.c_str(),
-                           field_desc->name().c_str(), lower_name.c_str());
+                           field_name.c_str(), lower_name.c_str());
                 } else {
-                    OUTPUT(ss_cc_, "%s%s_num_ = pf.%s().length();\n", INDENTATION(tab_num), field_desc->name().c_str(),
+                    OUTPUT(ss_cc_, "%s%s_num_ = pf.%s().length();\n", INDENTATION(tab_num), field_name.c_str(),
                            lower_name.c_str());
                     OUTPUT(ss_cc_, "%spf.%s().copy(%s_, %s_num_);\n", INDENTATION(tab_num), lower_name.c_str(),
-                           field_desc->name().c_str(), field_desc->name().c_str());
+                           field_name.c_str(), field_name.c_str());
                 }
-
-                OUTPUT(ss_cc_, "%s\n", INDENTATION(tab_num));
+                OUTPUT(ss_cc_, "\n");
             } else if (field_desc->cpp_type() == pb::FieldDescriptor::CPPTYPE_MESSAGE) {
-                OUTPUT(ss_cc_, "%sif (pf.has_%s())\n%s    _bret = _bret && %s_.FromPb(pf.%s(), errmsg);\n\n",
-                       INDENTATION(tab_num), lower_name.c_str(), INDENTATION(tab_num), field_desc->name().c_str(),
-                       lower_name.c_str());
+                OUTPUT(ss_cc_, "%sif (pf.has_%s())\n", INDENTATION(tab_num), lower_name.c_str());
+                OUTPUT(ss_cc_, "%s_bret = _bret && %s_.FromPb(pf.%s(), errmsg);\n\n", INDENTATION(tab_num + 1),
+                       field_name.c_str(), lower_name.c_str());
             } else {
                 OUTPUT(ss_cc_, "%s%s_ = pf.%s();\n", INDENTATION(tab_num), field_desc->name().c_str(),
                        lower_name.c_str());
@@ -844,7 +834,7 @@ int PbConst::generate_frompb_func(const pb::Descriptor *msg_desc) {
         }
     }
     // method FromPb
-    OUTPUT(ss_cc_, "    return _bret;\n}\n\n");
+    OUTPUT(ss_cc_, "%sreturn _bret;\n}\n\n", INDENTATION(tab_num));
     return ErrorCode::PROCESS_SUCCESS;
 }
 
@@ -1232,10 +1222,10 @@ int PbConst::generate_repeated_add_func(const pb::Descriptor *msg_desc) {
 
             OUTPUT(ss_cc_, "%sif (%s_num_ >= %s)\n", INDENTATION(tab_num), field_desc->name().c_str(),
                    get_repeated_limit(field_desc->name()).c_str());
-            OUTPUT(ss_cc_, "%sreturn nullptr;\n", INDENTATION(++tab_num));
-            OUTPUT(ss_cc_, "%s++%s_num_;\n", INDENTATION(--tab_num), field_desc->name().c_str());
+            OUTPUT(ss_cc_, "%sreturn nullptr;\n", INDENTATION(tab_num + 1));
+            OUTPUT(ss_cc_, "%s++%s_num_;\n", INDENTATION(tab_num), field_desc->name().c_str());
             OUTPUT(ss_cc_, "%sif (pidx != nullptr)\n", INDENTATION(tab_num));
-            OUTPUT(ss_cc_, "%s*pidx = (%s_num_ - 1);\n", INDENTATION(++tab_num), field_desc->name().c_str());
+            OUTPUT(ss_cc_, "%s*pidx = (%s_num_ - 1);\n", INDENTATION(tab_num + 1), field_desc->name().c_str());
             OUTPUT(ss_cc_, "%smemset(&(%s_[%s_num_ - 1]), 0, sizeof(%s));\n", INDENTATION(tab_num),
                    field_desc->name().c_str(), field_desc->name().c_str(),
                    get_field_type_name(field_desc, cmds["@pbc_type"]).c_str());
@@ -1250,8 +1240,7 @@ int PbConst::generate_repeated_add_func(const pb::Descriptor *msg_desc) {
 
             OUTPUT(ss_cc_, "%sif (%s_num_ >= %s)\n", INDENTATION(tab_num), field_desc->name().c_str(),
                    get_repeated_limit(field_desc->name()).c_str());
-            OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(++tab_num));
-            OUTPUT(ss_cc_, "%s}\n", INDENTATION(--tab_num));
+            OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(tab_num + 1));
             OUTPUT(ss_cc_, "%s%s_[%s_num_] = value;\n", INDENTATION(tab_num), field_desc->name().c_str(),
                    field_desc->name().c_str());
             OUTPUT(ss_cc_, "%s++%s_num_;\n", INDENTATION(tab_num), field_desc->name().c_str());
@@ -1292,13 +1281,12 @@ int PbConst::generate_repeated_del_func(const pb::Descriptor *msg_desc) {
                    field_desc->name().c_str(), get_repeated_limit(field_desc->name()).c_str());
             OUTPUT(ss_cc_, "%sif (idx < last_idx)\n", INDENTATION(tab_num));
             OUTPUT(ss_cc_, "%smemmove(&(%s_[idx]), &(%s_[idx + 1]), (last_idx - idx) * sizeof(%s));\n",
-                   INDENTATION(++tab_num), field_desc->name().c_str(), field_desc->name().c_str(),
+                   INDENTATION(tab_num + 1), field_desc->name().c_str(), field_desc->name().c_str(),
                    get_field_type_name(field_desc, cmds["@pbc_type"]).c_str());
             OUTPUT(ss_cc_, "%s--%s_num_;\n", INDENTATION(tab_num), field_desc->name().c_str());
         } else {
             OUTPUT(ss_cc_, "%sif (idx >= %s)\n", INDENTATION(tab_num), get_repeated_limit(field_desc->name()).c_str());
-            OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(++tab_num));
-            OUTPUT(ss_cc_, "%s}\n", INDENTATION(tab_num));
+            OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(tab_num + 1));
             OUTPUT(ss_cc_, "%smemset(&(%s_[idx]), 0, sizeof(%s));\n", INDENTATION(tab_num), field_desc->name().c_str(),
                    get_field_type_name(field_desc, cmds["@pbc_type"]).c_str());
         }
@@ -1311,9 +1299,10 @@ int PbConst::generate_repeated_del_func(const pb::Descriptor *msg_desc) {
             OUTPUT(ss_struct_def_, "    bool del_mlast_%s(uint32_t idx);\n", field_desc->name().c_str());
             OUTPUT(ss_cc_, "bool %s::del_mlast_%s(uint32_t idx) {\n", struct_name.c_str(), field_desc->name().c_str());
             OUTPUT(ss_cc_, "%sif (idx >= %s || idx >= %s_num_)\n%sreturn false;\n", INDENTATION(tab_num),
-                   get_repeated_limit(field_desc->name()).c_str(), field_desc->name().c_str(), INDENTATION(++tab_num));
+                   get_repeated_limit(field_desc->name()).c_str(), field_desc->name().c_str(),
+                   INDENTATION(tab_num + 1));
             // 如果不是最后一个
-            OUTPUT(ss_cc_, "%sif (idx != %s_num_ - 1)\n", INDENTATION(--tab_num), field_desc->name().c_str());
+            OUTPUT(ss_cc_, "%sif (idx != %s_num_ - 1)\n", INDENTATION(tab_num), field_desc->name().c_str());
             OUTPUT(ss_cc_, "%smemmove(&(%s_[idx]), &(%s_[%s_num_ - 1]), sizeof(%s));\n", INDENTATION(++tab_num),
                    field_desc->name().c_str(), field_desc->name().c_str(), field_desc->name().c_str(),
                    type_name.c_str());
@@ -1404,6 +1393,8 @@ int PbConst::generate_repeated_del_batch_func(const pb::Descriptor *msg_desc) {
     for (int i = 0; i < msg_desc->field_count(); ++i) {
         const auto *field_desc = msg_desc->field(i);
         COND_EXP(!field_desc->is_repeated(), continue);
+        const auto &field_name = field_desc->name();
+
         // 先获取当前这个变量的类型，如果是 message，需要定义对应的 eq_key 和 eq_ref, 如果是 string, 暂时还不支持
         if (field_desc->cpp_type() == pb::FieldDescriptor::CPPTYPE_STRING ||
             field_desc->cpp_type() == pb::FieldDescriptor::CPPTYPE_DOUBLE ||
@@ -1417,57 +1408,54 @@ int PbConst::generate_repeated_del_batch_func(const pb::Descriptor *msg_desc) {
         std::string type_name = get_field_type_name(field_desc, cmds["@pbc_type"]);
         // 按照下标批量删除，下标必须是从小到大排好序的，且不能重复
         OUTPUT(ss_struct_def_, "%sbool del_batch_%s(const std::vector<uint32_t> &del_idx);\n", INDENTATION(tab_num),
-               field_desc->name().c_str());
+               field_name.c_str());
         OUTPUT(ss_cc_, "bool %s::del_batch_%s(const std::vector<uint32_t> &del_idx) {\n", struct_name.c_str(),
-               field_desc->name().c_str());
+               field_name.c_str());
         // 要看是不是 fix 的，如果是 fix的话，这里是完全不一样的做法
         if (cmds.count("@pbc_fix")) {
             // 先检查一下下标的正确性吧
             OUTPUT(ss_cc_, "%sfor (auto idx : del_idx) {\n", INDENTATION(tab_num));
-            OUTPUT(ss_cc_, "%sif (idx >= %s)\n", INDENTATION(++tab_num),
-                   get_repeated_limit(field_desc->name()).c_str());
-            OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(++tab_num));
-            --tab_num;
+            OUTPUT(ss_cc_, "%sif (idx >= %s)\n", INDENTATION(++tab_num), get_repeated_limit(field_name).c_str());
+            OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(tab_num + 1));
             OUTPUT(ss_cc_, "%s}\n", INDENTATION(--tab_num));
             // 将这段内存直接清空
-            OUTPUT(ss_cc_, "%sfor (auto idx : del_idx) {\n", INDENTATION(tab_num));
-            OUTPUT(ss_cc_, "%smemset(&(%s_[idx]), 0, sizeof(%s));\n", INDENTATION(++tab_num),
-                   field_desc->name().c_str(), type_name.c_str());
-            OUTPUT(ss_cc_, "%s}\n", INDENTATION(--tab_num));
+            OUTPUT(ss_cc_, "%sfor (auto idx : del_idx)\n", INDENTATION(tab_num));
+            OUTPUT(ss_cc_, "%smemset(&(%s_[idx]), 0, sizeof(%s));\n", INDENTATION(tab_num + 1), field_name.c_str(),
+                   type_name.c_str());
             OUTPUT(ss_cc_, "%sreturn true;\n}\n\n", INDENTATION(tab_num));
         } else {
             // 先检查一下下标的正确性吧
             OUTPUT(ss_cc_, "%sif (del_idx.empty())\n", INDENTATION(tab_num));
-            OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(++tab_num));
+            OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(tab_num + 1));
 
-            OUTPUT(ss_cc_, "%sint pre_idx = -1;\n", INDENTATION(--tab_num));
+            OUTPUT(ss_cc_, "%sint pre_idx = -1;\n", INDENTATION(tab_num));
             OUTPUT(ss_cc_, "%sfor (auto idx : del_idx) {\n", INDENTATION(tab_num));
             OUTPUT(ss_cc_, "%sif (idx >= %s_num_ || static_cast<int>(idx) <= pre_idx)\n", INDENTATION(++tab_num),
-                   field_desc->name().c_str());
-            OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(++tab_num));
-            OUTPUT(ss_cc_, "%spre_idx = idx;\n", INDENTATION(--tab_num));
+                   field_name.c_str());
+            OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(tab_num + 1));
+            OUTPUT(ss_cc_, "%spre_idx = idx;\n", INDENTATION(tab_num));
             OUTPUT(ss_cc_, "%s}\n", INDENTATION(--tab_num));
 
-            OUTPUT(ss_cc_, "%suint32_t old_array_size = %s_num_;\n", INDENTATION(tab_num), field_desc->name().c_str());
+            OUTPUT(ss_cc_, "%suint32_t old_array_size = %s_num_;\n", INDENTATION(tab_num), field_name.c_str());
             OUTPUT(ss_cc_, "%suint32_t read_pos = 0;\n", INDENTATION(tab_num));
             OUTPUT(ss_cc_, "%suint32_t write_pos = 0;\n", INDENTATION(tab_num));
-            OUTPUT(ss_cc_, "%s%s_num_ = 0;\n", INDENTATION(tab_num), field_desc->name().c_str());
+            OUTPUT(ss_cc_, "%s%s_num_ = 0;\n", INDENTATION(tab_num), field_name.c_str());
             OUTPUT(ss_cc_,
                    "%sfor (auto it = del_idx.begin(); read_pos < old_array_size && read_pos < %s; ++write_pos, "
                    "++read_pos, ++%s_num_) {\n",
-                   INDENTATION(tab_num), get_repeated_limit(field_desc->name()).c_str(), field_desc->name().c_str());
+                   INDENTATION(tab_num), get_repeated_limit(field_name).c_str(), field_name.c_str());
             OUTPUT(ss_cc_, "%swhile (it != del_idx.end() && read_pos == *it) {\n", INDENTATION(++tab_num));
             OUTPUT(ss_cc_, "%s++read_pos;\n", INDENTATION(++tab_num));
             OUTPUT(ss_cc_, "%s++it;\n", INDENTATION(tab_num));
             OUTPUT(ss_cc_, "%s}\n", INDENTATION(--tab_num));
             OUTPUT(ss_cc_, "%sif (write_pos == read_pos)\n", INDENTATION(tab_num));
-            OUTPUT(ss_cc_, "%scontinue;\n", INDENTATION(++tab_num));
-            OUTPUT(ss_cc_, "%sif (read_pos >= old_array_size || read_pos >= %s)\n", INDENTATION(--tab_num),
-                   get_repeated_limit(field_desc->name()).c_str());
-            OUTPUT(ss_cc_, "%sbreak;\n", INDENTATION(++tab_num));
-            OUTPUT(ss_cc_, "%smemmove(&(%s_[write_pos]), &(%s_[read_pos]), sizeof(%s));\n%s}\n", INDENTATION(--tab_num),
-                   field_desc->name().c_str(), field_desc->name().c_str(), type_name.c_str());
-            OUTPUT(ss_cc_, "%s}", INDENTATION(--tab_num));
+            OUTPUT(ss_cc_, "%scontinue;\n", INDENTATION(tab_num + 1));
+            OUTPUT(ss_cc_, "%sif (read_pos >= old_array_size || read_pos >= %s)\n", INDENTATION(tab_num),
+                   get_repeated_limit(field_name).c_str());
+            OUTPUT(ss_cc_, "%sbreak;\n", INDENTATION(tab_num + 1));
+            OUTPUT(ss_cc_, "%smemmove(&(%s_[write_pos]), &(%s_[read_pos]), sizeof(%s));\n", INDENTATION(tab_num),
+                   field_name.c_str(), field_name.c_str(), type_name.c_str());
+            OUTPUT(ss_cc_, "%s}\n", INDENTATION(--tab_num));
             OUTPUT(ss_cc_, "%sreturn true;\n}\n\n", INDENTATION(tab_num));
         }
     }
@@ -1513,8 +1501,7 @@ int PbConst::generate_repeated_find_func(const pb::Descriptor *msg_desc) {
                    limit_num.c_str());
             OUTPUT(ss_struct_def_, "    %sif (%s_[i].eq_key(keys...))\n", INDENTATION(++tab_num),
                    field_desc->name().c_str());
-            OUTPUT(ss_struct_def_, "    %sreturn &(%s_[i]);\n", INDENTATION(++tab_num), field_desc->name().c_str());
-            --tab_num;
+            OUTPUT(ss_struct_def_, "    %sreturn &(%s_[i]);\n", INDENTATION(tab_num + 1), field_desc->name().c_str());
             OUTPUT(ss_struct_def_, "    %s}\n", INDENTATION(--tab_num));
             OUTPUT(ss_struct_def_, "    %sreturn nullptr;\n    }\n\n", INDENTATION(tab_num));
 
@@ -1525,9 +1512,8 @@ int PbConst::generate_repeated_find_func(const pb::Descriptor *msg_desc) {
                    field_desc->name().c_str(), type_name.c_str());
             OUTPUT(ss_cc_, "%sfor (uint32_t i = 0; i < %s; ++i) {\n", INDENTATION(tab_num), limit_num.c_str());
             OUTPUT(ss_cc_, "%sif (%s_[i].eq_ref(ref))\n", INDENTATION(++tab_num), field_desc->name().c_str());
-            OUTPUT(ss_cc_, "%sreturn &(%s_[i]);\n", INDENTATION(++tab_num), field_desc->name().c_str());
-            --tab_num;
-            OUTPUT(ss_cc_, "}\n", INDENTATION(--tab_num));
+            OUTPUT(ss_cc_, "%sreturn &(%s_[i]);\n", INDENTATION(tab_num + 1), field_desc->name().c_str());
+            OUTPUT(ss_cc_, "%s}\n", INDENTATION(--tab_num));
             OUTPUT(ss_cc_, "%sreturn nullptr;\n}\n\n", INDENTATION(tab_num));
 
             // 顺便生成返回下标的 find 函数
@@ -1538,8 +1524,7 @@ int PbConst::generate_repeated_find_func(const pb::Descriptor *msg_desc) {
                    limit_num.c_str());
             OUTPUT(ss_struct_def_, "    %sif (%s_[i].eq_key(keys...))\n", INDENTATION(++tab_num),
                    field_desc->name().c_str());
-            OUTPUT(ss_struct_def_, "    %sreturn i;\n", INDENTATION(++tab_num));
-            --tab_num;
+            OUTPUT(ss_struct_def_, "    %sreturn i;\n", INDENTATION(tab_num + 1));
             OUTPUT(ss_struct_def_, "    %s}\n", INDENTATION(--tab_num));
             OUTPUT(ss_struct_def_, "    %sreturn -1;\n    }\n\n", INDENTATION(tab_num));
 
@@ -1550,8 +1535,7 @@ int PbConst::generate_repeated_find_func(const pb::Descriptor *msg_desc) {
                    field_desc->name().c_str(), type_name.c_str());
             OUTPUT(ss_cc_, "%sfor (uint32_t i = 0; i < %s; ++i) {\n", INDENTATION(tab_num), limit_num.c_str());
             OUTPUT(ss_cc_, "%sif (%s_[i].eq_ref(ref))\n", INDENTATION(++tab_num), field_desc->name().c_str());
-            OUTPUT(ss_cc_, "%sreturn i;\n", INDENTATION(++tab_num));
-            --tab_num;
+            OUTPUT(ss_cc_, "%sreturn i;\n", INDENTATION(tab_num + 1));
             OUTPUT(ss_cc_, "%s}\n", INDENTATION(--tab_num));
             OUTPUT(ss_cc_, "%sreturn -1;\n}\n\n", INDENTATION(tab_num));
         } else {
@@ -1562,8 +1546,7 @@ int PbConst::generate_repeated_find_func(const pb::Descriptor *msg_desc) {
             // 普通类型直接用 ==
             OUTPUT(ss_cc_, "%sfor (uint32_t i = 0; i < %s; ++i) {\n", INDENTATION(tab_num), limit_num.c_str());
             OUTPUT(ss_cc_, "%sif (%s_[i] == keys)\n", INDENTATION(++tab_num), field_desc->name().c_str());
-            OUTPUT(ss_cc_, "%sreturn &(%s_[i]);\n", INDENTATION(++tab_num), field_desc->name().c_str());
-            --tab_num;
+            OUTPUT(ss_cc_, "%sreturn &(%s_[i]);\n", INDENTATION(tab_num + 1), field_desc->name().c_str());
             OUTPUT(ss_cc_, "%s}\n", INDENTATION(--tab_num));
             OUTPUT(ss_cc_, "%sreturn nullptr;\n}\n\n", INDENTATION(tab_num));
 
@@ -1575,8 +1558,7 @@ int PbConst::generate_repeated_find_func(const pb::Descriptor *msg_desc) {
             // 普通类型直接用 ==
             OUTPUT(ss_cc_, "%sfor (uint32_t i = 0; i < %s; ++i) {\n", INDENTATION(tab_num), limit_num.c_str());
             OUTPUT(ss_cc_, "%sif (%s_[i] == keys)\n", INDENTATION(++tab_num), field_desc->name().c_str());
-            OUTPUT(ss_cc_, "%sreturn i;\n", INDENTATION(++tab_num));
-            --tab_num;
+            OUTPUT(ss_cc_, "%sreturn i;\n", INDENTATION(tab_num + 1));
             OUTPUT(ss_cc_, "%s}\n", INDENTATION(--tab_num));
             OUTPUT(ss_cc_, "%sreturn -1;\n}\n\n", INDENTATION(tab_num));
         }
@@ -1594,35 +1576,33 @@ int PbConst::generate_repeated_swap_func(const pb::Descriptor *msg_desc) {
     for (int i = 0; i < msg_desc->field_count(); ++i) {
         const auto *field_desc = msg_desc->field(i);
         COND_EXP(!field_desc->is_repeated(), continue);
+        const auto &field_name = field_desc->name();
 
         pb::SourceLocation loc;
         field_desc->GetSourceLocation(&loc);
         handle_field_comment(loc, cmds, leading_comment, trailing_comment, tab_num);
         COND_EXP(cmds.count("@pbc_vector"), continue);
         // swap
-        OUTPUT_DEBUG("    START HANDLE Func: swap_%s", field_desc->name().c_str());
+        OUTPUT_DEBUG("    START HANDLE Func: swap_%s", field_name.c_str());
 
-        OUTPUT(ss_struct_def_, "    bool swap_%s(uint32_t idx1, uint32_t idx2);\n", field_desc->name().c_str());
-        OUTPUT(ss_cc_, "bool %s::swap_%s(uint32_t idx1, uint32_t idx2)\n{\n", struct_name.c_str(),
-               field_desc->name().c_str());
+        OUTPUT(ss_struct_def_, "    bool swap_%s(uint32_t idx1, uint32_t idx2);\n", field_name.c_str());
+        OUTPUT(ss_cc_, "bool %s::swap_%s(uint32_t idx1, uint32_t idx2) {\n", struct_name.c_str(), field_name.c_str());
 
         if (!cmds.count("@pbc_fix")) {
-            OUTPUT(ss_cc_, "%sif (idx1 >= %s_num_ || idx1 >= %s || idx2 >= %s_num_ || idx2 >= %s) {\n",
-                   INDENTATION(tab_num), field_desc->name().c_str(), get_repeated_limit(field_desc->name()).c_str(),
-                   field_desc->name().c_str(), get_repeated_limit(field_desc->name()).c_str());
+            OUTPUT(ss_cc_, "%sif (idx1 >= %s_num_ || idx1 >= %s || idx2 >= %s_num_ || idx2 >= %s)\n",
+                   INDENTATION(tab_num), field_name.c_str(), get_repeated_limit(field_name).c_str(), field_name.c_str(),
+                   get_repeated_limit(field_name).c_str());
         } else {
-            OUTPUT(ss_cc_, "%sif (idx1 >= %s || idx2 >= %s) {\n", INDENTATION(tab_num),
-                   get_repeated_limit(field_desc->name()).c_str(), get_repeated_limit(field_desc->name()).c_str());
+            OUTPUT(ss_cc_, "%sif (idx1 >= %s || idx2 >= %s)\n", INDENTATION(tab_num),
+                   get_repeated_limit(field_name).c_str(), get_repeated_limit(field_name).c_str());
         }
 
-        const auto &field_name = field_desc->name();
-        OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(++tab_num));
-        OUTPUT(ss_cc_, "%s}\n", INDENTATION(--tab_num));
+        OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(tab_num + 1));
         OUTPUT(ss_cc_, "%sif (idx1 != idx2) {\n", INDENTATION(tab_num));
         OUTPUT(ss_cc_, "%sauto tmp = %s_[idx1];\n", INDENTATION(++tab_num), field_name.c_str());
         OUTPUT(ss_cc_, "%s%s_[idx1] = %s_[idx2];\n", INDENTATION(tab_num), field_name.c_str(), field_name.c_str());
         OUTPUT(ss_cc_, "%s%s_[idx2] = tmp;\n", INDENTATION(tab_num), field_name.c_str());
-        OUTPUT(ss_cc_, "%s}\n", INDENTATION(tab_num));
+        OUTPUT(ss_cc_, "%s}\n", INDENTATION(--tab_num));
 
         OUTPUT(ss_cc_, "%sreturn true;\n", INDENTATION(tab_num));
         OUTPUT(ss_cc_, "}\n\n");
@@ -1651,9 +1631,9 @@ int PbConst::generate_repeated_full_func(const pb::Descriptor *msg_desc) {
 
         OUTPUT(ss_cc_, "%sif (%s_num_ >= %s)\n", INDENTATION(tab_num), field_desc->name().c_str(),
                get_repeated_limit(field_desc->name()).c_str());
-        OUTPUT(ss_cc_, "%sreturn true;\n", INDENTATION(++tab_num));
+        OUTPUT(ss_cc_, "%sreturn true;\n", INDENTATION(tab_num + 1));
 
-        OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(--tab_num));
+        OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(tab_num));
         OUTPUT(ss_cc_, "}\n\n");
     }
     return ErrorCode::PROCESS_SUCCESS;
@@ -1677,12 +1657,12 @@ int PbConst::generate_repeated_empty_func(const pb::Descriptor *msg_desc) {
         OUTPUT_DEBUG("    START HANDLE Func: %s_is_empty", field_desc->name().c_str());
 
         OUTPUT(ss_struct_def_, "    bool %s_is_empty() const;\n", field_desc->name().c_str());
-        OUTPUT(ss_cc_, "bool %s::%s_is_empty() const\n{\n", struct_name.c_str(), field_desc->name().c_str());
+        OUTPUT(ss_cc_, "bool %s::%s_is_empty() const {\n", struct_name.c_str(), field_desc->name().c_str());
 
         OUTPUT(ss_cc_, "%sif (%s_num_ == 0)\n", INDENTATION(tab_num), field_desc->name().c_str());
-        OUTPUT(ss_cc_, "%sreturn true;\n", INDENTATION(++tab_num));
+        OUTPUT(ss_cc_, "%sreturn true;\n", INDENTATION(tab_num + 1));
 
-        OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(--tab_num));
+        OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(tab_num));
         OUTPUT(ss_cc_, "}\n\n");
     }
     return ErrorCode::PROCESS_SUCCESS;
@@ -1697,14 +1677,14 @@ int PbConst::generate_key_compare_func(const pb::Descriptor *msg_desc) {
         (!ref_str.empty() ? "return true;" : "assert(false);\n" + std::string(INDENTATION(tab_num)) + "return false;");
     OUTPUT(ss_struct_def_, "    bool eq_ref(const %s &ref) const;\n", struct_name.c_str());  // 加入头文件
     OUTPUT(ss_cc_, "bool %s::eq_ref(const %s &ref) const {\n", struct_name.c_str(), struct_name.c_str());
-    COND_EXP(!ref_str.empty(), OUTPUT(ss_cc_, "%s\n", ref_str.c_str()));
+    COND_EXP(!ref_str.empty(), OUTPUT(ss_cc_, "%s", ref_str.c_str()));
     OUTPUT(ss_cc_, "%s%s\n}\n\n", INDENTATION(tab_num), default_result.c_str());
 
     default_result =
         (!eq_str.empty() ? "return true;" : "assert(false);\n" + std::string(INDENTATION(tab_num)) + "return false;");
     OUTPUT(ss_struct_def_, "    bool eq_key(%s) const;\n", eq_key_args_.c_str());  // 加入头文件
     OUTPUT(ss_cc_, "bool %s::eq_key(%s) const {\n", struct_name.c_str(), eq_key_args_.c_str());
-    COND_EXP(!eq_str.empty(), OUTPUT(ss_cc_, "%s\n", eq_str.c_str()));
+    COND_EXP(!eq_str.empty(), OUTPUT(ss_cc_, "%s", eq_str.c_str()));
     OUTPUT(ss_cc_, "%s%s\n}\n\n", INDENTATION(tab_num), default_result.c_str());
     // 这里要把eq_key_def_stream_ ref_key_def_steam_清空
     // TODO modnarshen use ss_ref_key_def_.clear() ?
@@ -1920,7 +1900,7 @@ int PbConst::generate_comment(const std::string &context, std::string &comment, 
             std::vector<std::string> lines;
             pbc::split(src, "\n", lines);
             if (lines.size() == 1) {
-                comment += (std::string(INDENTATION(tab_num)) + "/*" + pbc::trim(lines[0]) + "*/");
+                comment += (std::string(INDENTATION(tab_num)) + "/* " + pbc::trim(lines[0]) + " */");
             } else {
                 comment = std::string(INDENTATION(tab_num)) + "/*\n";
                 for (size_t i = 0; i < lines.size(); i++) {

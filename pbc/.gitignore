@@ -36,3 +36,5 @@ Makefile
 # pbc
 *.pbc.h
 *.pbc.cc
+output/
+*.log
