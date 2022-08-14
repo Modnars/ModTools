@@ -1,7 +1,7 @@
 # _pbc_
 
 <div align="center">
-    <img src="https://user-images.githubusercontent.com/22772190/184528429-e6233cae-1091-4e19-aebf-2af3c90e367b.png" />
+    <img src="https://user-images.githubusercontent.com/22772190/184528491-4c5b80f5-9b39-4bd7-9ab0-f24871e2c6cb.png" />
 </div>
 
 &#160; &#160; &#160; &#160; `pbc` 是一个基于 `protobuf` 实现的工具。它可以将 `protobuf` 定义的数据结构生成 `C 语言` 可支持的数据结构代码，并提供一系列必要的功能接口。可应用于 `protobuf` 数据映射到机器的共享内存等。此外，也可以用 `pbc` 来定义一些针对特定 `message` 的特殊逻辑代码，这些往往都是 `protobuf` 本身不会额外支持的功能。`pbc` 可以帮助用户更好地拓展使用 `protobuf` 定义的数据结构、更好地移植适配代码。
