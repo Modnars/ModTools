@@ -1357,8 +1357,7 @@ int PbConst::generate_repeated_del_by_key_func(const pb::Descriptor *msg_desc) {
                        field_desc->name().c_str());
                 OUTPUT(ss_struct_def_, "    %sreturn false;\n    }\n\n", INDENTATION(--tab_num));
             }
-        } else  // 基础类型没有模板参数
-        {
+        } else {  // 基础类型没有模板参数
             OUTPUT(ss_struct_def_, "    bool del_key_%s(const %s keys);\n", field_desc->name().c_str(),
                    type_name.c_str());
             OUTPUT(ss_cc_, "bool %s::del_key_%s(const %s keys) {\n", struct_name.c_str(), field_desc->name().c_str(),
