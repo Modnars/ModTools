@@ -32,7 +32,7 @@ std::map<std::string, PbConst::CmdHandler> PbConst::cmd_handler_map_ = {
     {"@pbc_declare", PbConst::handle_common_cmd}, {"@pbc_node", PbConst::handle_common_cmd},
     {"@pbc_type", PbConst::handle_common_cmd},    {"@pbc_code", PbConst::handle_common_cmd},
     {"@pbc_len", PbConst::handle_common_cmd},     {"@pbc_fix", PbConst::handle_common_cmd},
-    {"@pbc_key", PbConst::handle_common_cmd},     {"@pbc_vector", PbConst::handle_common_cmd},
+    {"@pbc_key", PbConst::handle_common_cmd},
 };
 
 int PbConst::Init(const std::string &proto_filepath, const std::vector<std::string> &proto_file_path,
@@ -432,8 +432,8 @@ bool PbConst::CheckFieldProperties(const pb::Descriptor *msg_desc) const {
             msg_desc->name().c_str(), field_desc->name().c_str());
         // array must have @pbc_len or @pbc_fix
         bool is_array = (field_desc->is_repeated() || (field_desc->cpp_type() == pb::FieldDescriptor::CPPTYPE_STRING));
-        COND_RET_ELOG(is_array && !cmds.count("@pbc_len") && !cmds.count("@pbc_fix") && !cmds.count("@pbc_vector"),
-                      false, "repeated or string field must has command @pbc_len or @pbc_fix|message:%s|field:%s",
+        COND_RET_ELOG(is_array && !cmds.count("@pbc_len") && !cmds.count("@pbc_fix"), false,
+                      "repeated or string field must has command @pbc_len or @pbc_fix|message:%s|field:%s",
                       msg_desc->name().c_str(), field_desc->name().c_str());
         // not support repeated string
         COND_RET_ELOG(field_desc->is_repeated() && (field_desc->cpp_type() == pb::FieldDescriptor::CPPTYPE_STRING),
@@ -635,7 +635,7 @@ int PbConst::generate_member_var(const pb::Descriptor *msg_desc) {
         COND_EXP(!leading_comment.empty(), OUTPUT(ss_struct_def_, "%s\n", leading_comment.c_str()));
         if (is_array) {
             // 没有设置 pbc_fix 定长就生成记录使用数量的字段
-            if (!cmds.count("@pbc_fix") && !cmds.count("@pbc_vector")) {
+            if (!cmds.count("@pbc_fix")) {
                 OUTPUT(ss_struct_def_, "%suint32_t %s_num_ = 0;\n", INDENTATION(tab_num), field_desc->name().c_str());
             }
 
@@ -644,7 +644,6 @@ int PbConst::generate_member_var(const pb::Descriptor *msg_desc) {
             // 如果定义了@pbc_fix 或者@pbc_len，两者起码有一个确定了最大长度
             COND_EXP(cmds.count("@pbc_fix"), cmd_str = cmds["@pbc_fix"]);
             COND_EXP(cmds.count("@pbc_len"), cmd_str = cmds["@pbc_len"]);
-            COND_EXP(cmds.count("@pbc_vector"), cmd_str = cmds["@pbc_vector"]);
             size_t pos = cmd_str.find('=');  // 如果没有 `=` 在 proto 中定义了具体的数字，则直接用注释的内容
             if (pos == std::string::npos) {
                 max_len = pbc::trim(cmd_str);
@@ -665,12 +664,7 @@ int PbConst::generate_member_var(const pb::Descriptor *msg_desc) {
                    max_len.c_str());
 
             set_repeated_limit_value(field_desc->name(), max_len);
-            if (cmds.count("@pbc_vector")) {
-                OUTPUT(ss_struct_def_, "%susing fixed_vector_%s_type = FixedVector<%s,%s>;\n", INDENTATION(tab_num),
-                       field_desc->name().c_str(), type_name.c_str(), max_len.c_str());
-                OUTPUT(ss_struct_def_, "%sfixed_vector_%s_type %s_;\n", INDENTATION(tab_num),
-                       field_desc->name().c_str(), field_desc->name().c_str());
-            } else if (field_desc->cpp_type() != pb::FieldDescriptor::CPPTYPE_MESSAGE) {
+            if (field_desc->cpp_type() != pb::FieldDescriptor::CPPTYPE_MESSAGE) {
                 // 这里直接用 max_len, 如果是数组，不定义 pbc_fix
                 // 或者 pbc_len 本来就是不对的，让这个问题在编译的时候报错
                 OUTPUT(ss_struct_def_, "%s%s %s_[%s] = {0};\n", INDENTATION(tab_num), type_name.c_str(),
@@ -730,9 +724,6 @@ int PbConst::generate_clean_func(const pb::Descriptor *msg_desc) {
 
         bool is_array = (field_desc->is_repeated() || (field_desc->cpp_type() == pb::FieldDescriptor::CPPTYPE_STRING));
         if (is_array) {
-            COND_EXP(cmds.count("@pbc_vector"),
-                     OUTPUT(ss_cc_, "%s%s_.clear();\n", INDENTATION(tab_num), field_desc->name().c_str());
-                     continue);
             COND_EXP(!cmds.count("@pbc_fix"),
                      OUTPUT(ss_cc_, "%s%s_num_ = 0;\n", INDENTATION(tab_num), field_desc->name().c_str()))
             OUTPUT(ss_cc_, "%smemset(%s_, 0, sizeof(%s_));\n", INDENTATION(tab_num), field_desc->name().c_str(),
@@ -786,10 +777,7 @@ int PbConst::generate_frompb_func(const pb::Descriptor *msg_desc) {
                    msg_name.c_str(), field_name.c_str());
             OUTPUT(ss_cc_, "%sreturn false;\n", INDENTATION(tab_num));
             OUTPUT(ss_cc_, "%s}\n\n", INDENTATION(--tab_num));
-            if (cmds.count("@pbc_vector")) {
-                OUTPUT(ss_cc_, "%s%s_.resize(pf.%s_size());\n", INDENTATION(tab_num), field_name.c_str(),
-                       lower_name.c_str());
-            } else if (!cmds.count("@pbc_fix")) {
+            if (!cmds.count("@pbc_fix")) {
                 OUTPUT(ss_cc_, "%s%s_num_ = pf.%s_size();\n", INDENTATION(tab_num), field_name.c_str(),
                        lower_name.c_str());
             }
@@ -869,10 +857,7 @@ int PbConst::generate_topb_func(const pb::Descriptor *msg_desc) {
         std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(), ::tolower);
         // topb
         if (field_desc->is_repeated()) {
-            if (cmds.count("@pbc_vector")) {
-                OUTPUT(ss_cc_, "%sfor (uint32_t i = 0; i < %s_.size(); ++i)\n", INDENTATION(tab_num),
-                       field_desc->name().c_str(), get_repeated_limit(field_desc->name()).c_str());
-            } else if (!cmds.count("@pbc_fix")) {
+            if (!cmds.count("@pbc_fix")) {
                 OUTPUT(ss_cc_, "%sfor (uint32_t i = 0; i < %s_num_ && i < %s; ++i)\n", INDENTATION(tab_num),
                        field_desc->name().c_str(), get_repeated_limit(field_desc->name()).c_str());
             } else {
@@ -922,25 +907,10 @@ int PbConst::generate_get_func(const pb::Descriptor *msg_desc) {
         pb::SourceLocation loc;
         field_desc->GetSourceLocation(&loc);
         handle_field_comment(loc, cmds, leading_comment, trailing_comment, tab_num);
-        COND_EXP(field_desc->is_repeated() && !cmds.count("@pbc_vector"), continue);
+        COND_EXP(field_desc->is_repeated(), continue);
         // size
         OUTPUT_DEBUG("    START HANDLE Func: get_%s", field_desc->name().c_str());
-        if (cmds.count("@pbc_vector")) {
-            OUTPUT(ss_struct_def_, "    const fixed_vector_%s_type &%s() const;\n", field_desc->name().c_str(),
-                   field_desc->name().c_str());
-            OUTPUT(ss_struct_def_, "    fixed_vector_%s_type *mutable_%s();\n", field_desc->name().c_str(),
-                   field_desc->name().c_str());
-
-            OUTPUT(ss_cc_, "const %s::fixed_vector_%s_type &%s::%s() const {\n", struct_name.c_str(),
-                   field_desc->name().c_str(), struct_name.c_str(), field_desc->name().c_str());
-            OUTPUT(ss_cc_, "%sreturn %s_;\n", INDENTATION(tab_num), field_desc->name().c_str());
-            OUTPUT(ss_cc_, "}\n\n");
-
-            OUTPUT(ss_cc_, "%s::fixed_vector_%s_type *%s::mutable_%s() {\n", struct_name.c_str(),
-                   field_desc->name().c_str(), struct_name.c_str(), field_desc->name().c_str());
-            OUTPUT(ss_cc_, "%sreturn &%s_;\n", INDENTATION(tab_num), field_desc->name().c_str());
-            OUTPUT(ss_cc_, "}\n\n");
-        } else if (field_desc->cpp_type() == pb::FieldDescriptor::CPPTYPE_STRING) {
+        if (field_desc->cpp_type() == pb::FieldDescriptor::CPPTYPE_STRING) {
             if (!cmds.count("@pbc_fix")) {
                 // bytes字段生成get_num函数
                 OUTPUT(ss_struct_def_, "    uint32_t %s_num() const;\n", field_desc->name().c_str());
@@ -1060,9 +1030,7 @@ int PbConst::generate_repeated_size_func(const pb::Descriptor *msg_desc) {
         std::string max_count = get_repeated_limit(field_desc->name());
         OUTPUT(ss_struct_def_, "    uint32_t %s_size() const;\n", field_desc->name().c_str());
         OUTPUT(ss_cc_, "uint32_t %s::%s_size() const {\n", struct_name.c_str(), field_desc->name().c_str());
-        if (cmds.count("@pbc_vector")) {
-            OUTPUT(ss_cc_, "%sreturn %s_.size();\n", INDENTATION(tab_num), field_desc->name().c_str());
-        } else if (!cmds.count("@pbc_fix")) {
+        if (!cmds.count("@pbc_fix")) {
             OUTPUT(ss_cc_, "%sreturn %s_num_ < %s ? %s_num_ : %s;\n", INDENTATION(tab_num), field_desc->name().c_str(),
                    max_count.c_str(), field_desc->name().c_str(), max_count.c_str());
         } else {
@@ -1088,7 +1056,6 @@ int PbConst::generate_repeated_get_func(const pb::Descriptor *msg_desc) {
         pb::SourceLocation loc;
         field_desc->GetSourceLocation(&loc);
         handle_field_comment(loc, cmds, leading_comment, trailing_comment, tab_num);
-        COND_EXP(cmds.count("@pbc_vector"), continue);
         // get
         OUTPUT_DEBUG("    START HANDLE Func: get_%s", field_desc->name().c_str());
 
@@ -1165,7 +1132,6 @@ int PbConst::generate_repeated_set_func(const pb::Descriptor *msg_desc) {
         pb::SourceLocation loc;
         field_desc->GetSourceLocation(&loc);
         handle_field_comment(loc, cmds, leading_comment, trailing_comment, tab_num);
-        COND_EXP(cmds.count("@pbc_vector"), continue);
         // set
         OUTPUT_DEBUG("    START HANDLE Func: set_%s", field_desc->name().c_str());
 
@@ -1209,7 +1175,6 @@ int PbConst::generate_repeated_add_func(const pb::Descriptor *msg_desc) {
 
         // 固定长度数组没有add方法
         COND_EXP(cmds.count("@pbc_fix"), continue);
-        COND_EXP(cmds.count("@pbc_vector"), continue);
 
         // add
         OUTPUT_DEBUG("    START HANDLE add_%s Func", field_desc->name().c_str());
@@ -1265,7 +1230,6 @@ int PbConst::generate_repeated_del_func(const pb::Descriptor *msg_desc) {
         field_desc->GetSourceLocation(&loc);
         handle_field_comment(loc, cmds, leading_comment, trailing_comment, tab_num);
         std::string type_name = get_field_type_name(field_desc, cmds["@pbc_type"]);
-        COND_EXP(cmds.count("@pbc_vector"), continue);
         // del
         OUTPUT_DEBUG("    START HANDLE Func: del_%s", field_desc->name().c_str());
 
@@ -1293,7 +1257,6 @@ int PbConst::generate_repeated_del_func(const pb::Descriptor *msg_desc) {
         OUTPUT(ss_cc_, "%sreturn true;\n", INDENTATION(tab_num));
         OUTPUT(ss_cc_, "}\n\n");
 
-        COND_EXP(cmds.count("@pbc_vector"), continue);
         // 定义一个使用最后一个元素代替被删除元素的删除版本，仅对@pbc_len生效
         if (!cmds.count("@pbc_fix")) {
             OUTPUT(ss_struct_def_, "    bool del_mlast_%s(uint32_t idx);\n", field_desc->name().c_str());
@@ -1335,7 +1298,6 @@ int PbConst::generate_repeated_del_by_key_func(const pb::Descriptor *msg_desc) {
         handle_field_comment(loc, cmds, leading_comment, trailing_comment, tab_num);
         std::string type_name = get_field_type_name(field_desc, cmds["@pbc_type"]);
 
-        COND_EXP(cmds.count("@pbc_vector"), continue);
         if (field_desc->cpp_type() == pb::FieldDescriptor::CPPTYPE_MESSAGE) {
             // 根据key删
             OUTPUT(ss_struct_def_, "\n    template <typename... Keys>\n");
@@ -1403,7 +1365,6 @@ int PbConst::generate_repeated_del_batch_func(const pb::Descriptor *msg_desc) {
         pb::SourceLocation loc;
         field_desc->GetSourceLocation(&loc);
         handle_field_comment(loc, cmds, leading_comment, trailing_comment, tab_num);
-        COND_EXP(cmds.count("@pbc_vector"), continue);
         std::string type_name = get_field_type_name(field_desc, cmds["@pbc_type"]);
         // 按照下标批量删除，下标必须是从小到大排好序的，且不能重复
         OUTPUT(ss_struct_def_, "%sbool del_batch_%s(const std::vector<uint32_t> &del_idx);\n", INDENTATION(tab_num),
@@ -1482,7 +1443,6 @@ int PbConst::generate_repeated_find_func(const pb::Descriptor *msg_desc) {
         pb::SourceLocation loc;
         field_desc->GetSourceLocation(&loc);
         handle_field_comment(loc, cmds, leading_comment, trailing_comment, tab_num);
-        COND_EXP(cmds.count("@pbc_vector"), continue);
         std::string type_name = get_field_type_name(field_desc, cmds["@pbc_type"]);
         // 看看是不是定长的
         std::string limit_num;
@@ -1580,7 +1540,6 @@ int PbConst::generate_repeated_swap_func(const pb::Descriptor *msg_desc) {
         pb::SourceLocation loc;
         field_desc->GetSourceLocation(&loc);
         handle_field_comment(loc, cmds, leading_comment, trailing_comment, tab_num);
-        COND_EXP(cmds.count("@pbc_vector"), continue);
         // swap
         OUTPUT_DEBUG("    START HANDLE Func: swap_%s", field_name.c_str());
 
@@ -1622,7 +1581,7 @@ int PbConst::generate_repeated_full_func(const pb::Descriptor *msg_desc) {
         pb::SourceLocation loc;
         field_desc->GetSourceLocation(&loc);
         handle_field_comment(loc, cmds, leading_comment, trailing_comment, tab_num);
-        COND_EXP(cmds.count("@pbc_fix") || cmds.count("@pbc_vector"), continue);
+        COND_EXP(cmds.count("@pbc_fix"), continue);
         OUTPUT_DEBUG("    START HANDLE Func: %s_is_full", field_desc->name().c_str());
 
         OUTPUT(ss_struct_def_, "    bool %s_is_full() const;\n", field_desc->name().c_str());
@@ -1651,7 +1610,7 @@ int PbConst::generate_repeated_empty_func(const pb::Descriptor *msg_desc) {
         pb::SourceLocation loc;
         field_desc->GetSourceLocation(&loc);
         handle_field_comment(loc, cmds, leading_comment, trailing_comment, tab_num);
-        COND_EXP(cmds.count("@pbc_fix") || cmds.count("@pbc_vector"), continue);
+        COND_EXP(cmds.count("@pbc_fix"), continue);
 
         OUTPUT_DEBUG("    START HANDLE Func: %s_is_empty", field_desc->name().c_str());
 
@@ -1759,7 +1718,6 @@ int PbConst::generate_clear_member_func(const pb::Descriptor *msg_desc) {
         pb::SourceLocation loc;
         field_desc->GetSourceLocation(&loc);
         handle_field_comment(loc, cmds, leading_comment, trailing_comment, tab_num);
-        COND_EXP(cmds.count("@pbc_vector"), continue);
         bool is_array = (field_desc->is_repeated() || (field_desc->cpp_type() == pb::FieldDescriptor::CPPTYPE_STRING));
 
         OUTPUT(ss_struct_def_, "    void clear_%s();\n", field_desc->name().c_str());
@@ -1841,9 +1799,6 @@ int PbConst::handle_field_comment(const pb::SourceLocation &loc, std::map<std::s
             if (iter->first == "@pbc_len") {
                 if (iter->first.empty() || iter2->second.empty())
                     iter2->second.append(iter->second);
-            }
-            if (iter->first == "@pbc_vector") {
-                iter2->second.append("\n").append(iter->second);
             }
         } else {
             cmds.insert(make_pair(iter->first, iter->second));

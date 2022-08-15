@@ -36,8 +36,8 @@ void usage(char *argv[]) {
     OUTPUT_STDOUT("  -IPATH, --proto_path=PATH  指定查询的 .proto 文件目录，如果 import 了文件，也要填充进来");
     OUTPUT_STDOUT("  -o, --cpp_out              指定生成的 .pbc.h, .pbc.cc 文件输出目录");
     OUTPUT_STDOUT("  -n, --file_name            按照给定的 file_name 来重新命名生成的 .pbc.h, .pbc.cc 文件名");
-    OUTPUT_STDOUT("  -v, --version              获取版本信息并退出");
     OUTPUT_STDOUT("  -d, --debug                以 DEBUG 模式运行此程序，可获取更多程序运行信息");
+    OUTPUT_STDOUT("  -v, --version              获取版本信息并退出");
     OUTPUT_STDOUT("  -h, --help                 获取此帮助信息并退出");
 }
 
