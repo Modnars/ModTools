@@ -120,7 +120,7 @@ protected:
     // 生成类的自定义代码
     void generate_class_pbc_code(const pb::Descriptor *msg_desc);
     // 生成枚举
-    int generate_enum(const pb::EnumDescriptor *enum_desc, std::stringstream &ss, int indent_num);
+    int generate_enum(const pb::EnumDescriptor *enum_desc, std::stringstream &ss, uint32_t tab_num);
     // 生成成员变量
     int generate_member_var(const pb::Descriptor *msg_desc);
     // 生成构造函数
@@ -172,22 +172,22 @@ protected:
     // @param cmds[OUT] 以命令字为 key，attachment 为 value 的 map
     // @param leading_comment[OUT] 前置注释
     // @param trailing_comment[OUT] 后置注释
-    // @param indent_num[IN] 缩进，只用于生成注释
+    // @param tab_num[IN] 缩进，只用于生成注释
     int handle_field_comment(const pb::SourceLocation &loc, std::map<std::string, std::string> &cmds,
-                             std::string &leading_comment, std::string &trailing_comment, int indent_num) const;
+                             std::string &leading_comment, std::string &trailing_comment, uint32_t tab_num) const;
 
     // 注释通用处理，处理注释的入口
     // @param src[IN/OUT] 与 field 相关的前置或者后置注释，处理后会删掉命令行
     // @param cmds[OUT] 以命令字或者 "comment" 为 key，attachment 为 value 的 map
-    // @param indent_num[IN] 缩进，只用于生成的注释
-    int handle_comment(std::string &src, std::map<std::string, std::string> &cmds, int indent_num) const;
+    // @param tab_num[IN] 缩进，只用于生成的注释
+    int handle_comment(std::string &src, std::map<std::string, std::string> &cmds, uint32_t tab_num) const;
 
     // 将注释内容处理成为注释块
     // @param context[IN] 单行或者多行的注释内容
     // @param comment[OUT] 标准 C++ 注释，单行使用 one-line comment，多行使用 block comment
-    // @param indent_num[IN] 缩进，1 indent_num == 4 * space
+    // @param tab_num[IN] 缩进，1 tab_num == 4 * space
     // @param one_line[IN] 在proto文件中是否是 one-line comment
-    int generate_comment(const std::string &context, std::string &comment, int indent_num, bool is_one_line) const;
+    int generate_comment(const std::string &context, std::string &comment, uint32_t tab_num, bool is_one_line) const;
 
 private:
     // example: $ pbc --proto_path=PATH --cpp_out=OUT_DIR --file_name=FILE_NAME source/example.proto

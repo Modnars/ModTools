@@ -110,7 +110,7 @@ int PbConst::Parse() {
     ss_hd_ << context.str();
     ss_cc_ << context.str();
 
-    // #pragma
+    // #pragma once
     OUTPUT(ss_hd_, "#pragma once\n\n");
     // #include
     OUTPUT(ss_hd_, "#include \"%s.pb.h\"\n",
@@ -560,7 +560,7 @@ void PbConst::generate_class_pbc_code(const pb::Descriptor *msg_desc) {
     }
 }
 
-int PbConst::generate_enum(const pb::EnumDescriptor *enum_desc, std::stringstream &ss, int tab_num) {
+int PbConst::generate_enum(const pb::EnumDescriptor *enum_desc, std::stringstream &ss, uint32_t tab_num) {
     OUTPUT_DEBUG("    START HANDLE ENUM|MessageEnum:%s", enum_desc->name().c_str());
     std::string src;
     std::string leading_comment, trailing_comment;
@@ -1768,7 +1768,7 @@ int PbConst::generate_debugstring_func(const pb::Descriptor *msg_desc) {
 }
 
 int PbConst::handle_field_comment(const pb::SourceLocation &loc, std::map<std::string, std::string> &cmds,
-                                  std::string &leading_comment, std::string &trailing_comment, int tab_num) const {
+                                  std::string &leading_comment, std::string &trailing_comment, uint32_t tab_num) const {
     std::string src;
     cmds.clear();
     leading_comment.clear();
@@ -1818,7 +1818,7 @@ int PbConst::handle_field_comment(const pb::SourceLocation &loc, std::map<std::s
     return ErrorCode::PROCESS_SUCCESS;
 }
 
-int PbConst::handle_comment(std::string &src, std::map<std::string, std::string> &cmds, int tab_num) const {
+int PbConst::handle_comment(std::string &src, std::map<std::string, std::string> &cmds, uint32_t tab_num) const {
     int ret;
     int cnt = pbc::count(src, '\n');
     for (auto iter = cmd_handler_map_.begin(); iter != cmd_handler_map_.end(); ++iter) {
@@ -1835,7 +1835,7 @@ int PbConst::handle_comment(std::string &src, std::map<std::string, std::string>
     return ErrorCode::PROCESS_SUCCESS;
 }
 
-int PbConst::generate_comment(const std::string &context, std::string &comment, int tab_num, bool one_line) const {
+int PbConst::generate_comment(const std::string &context, std::string &comment, uint32_t tab_num, bool one_line) const {
     comment.clear();
     std::string src = context;
 
