@@ -22,7 +22,7 @@
 ## [_HookReposter_](./HookReposter/python/)
 
 <div align="center">
-    <img src="./HookReposter/python/.res/hookreposter.icon.png" />
+    <img width="300" alt="hookreposter icon 300x262" src="https://user-images.githubusercontent.com/22772190/184793392-bdbc5a5c-8f4f-4d11-bc2b-7989b38433b4.png">
 </div>
 
 > _**简洁的webhook转发设计与实现**_
@@ -32,7 +32,7 @@
 ## [_pbc_](./pbc/)
 
 <div align="center">
-    <img src="https://user-images.githubusercontent.com/22772190/184528491-4c5b80f5-9b39-4bd7-9ab0-f24871e2c6cb.png" />
+    <img src="https://user-images.githubusercontent.com/22772190/184793193-6bd037c7-37ae-4e35-8d0a-e969e2437089.png" />
 </div>
 
 > _**protobuf 拓展定制化功能工具**_
